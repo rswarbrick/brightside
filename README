@@ -85,13 +85,28 @@ Requirements
 Installation
 ------------
 
+0) If you got this from the git tree, you need to generate files like
+   ./configure etc. To do so, run gnome-autogen.sh in the directory
+   into which you unpacked brightside. If you're not under gnome,
+   running
+
+     autoreconf -fi
+     intltoolize --force --copy --automake
+
+   might well work instead.
+
 1) ./configure
+
 2) make
+
 3) make install
+
 4) for brightness and volume control: make sure you have read and write 
    permissions on /dev/pmu and /dev/mixer
+
 5) run brightside or brightside-preferences, or visit Desktop Preferences ->
    Screen Corners and Edges - brightside will add itself to your session.
+
 Voila !
 
 Hidden Stuff
