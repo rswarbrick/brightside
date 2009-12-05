@@ -156,7 +156,6 @@ my_wnck_screen_get_root (WnckScreen *screen, Display *display)
 	return None;
 }
 
-#if 0
 static Window
 get_root_window_hint_window (Brightside *brightside, char *atom_name)
 {
@@ -186,7 +185,6 @@ get_root_window_hint_window (Brightside *brightside, char *atom_name)
 	XFree (prop);
 	return xwindow;
 }
-#endif
 
 static gboolean
 get_workspace_info (workspace_info *w_info, Brightside *brightside)
@@ -756,7 +754,7 @@ update_bar_volume_cb (Brightside *brightside)
 static gboolean
 lock_screen_cb (gpointer data)
 {
-	g_spawn_command_line_async ("xscreensaver-command -lock", NULL);
+	g_spawn_command_line_async ("xdg-screensaver lock", NULL);
 	return FALSE;
 }
 
@@ -871,7 +869,7 @@ do_mute_action (Brightside *brightside, gint action)
 gboolean
 disable_screensaver_cb (gpointer data)
 {
-	g_spawn_command_line_async ("xscreensaver-command -deactivate", NULL);
+	g_spawn_command_line_async ("xdg-screensaver reset", NULL);
 	return TRUE;
 }
 
@@ -913,7 +911,7 @@ do_screensaver_action (Brightside *brightside, gint action)
 			ICON_SCREENSAVER : ICON_LOCK, (action == ACTION_START));
 
 	if (action == ACTION_START) {
-		execute ("xscreensaver-command -activate", FALSE,
+		execute ("xdg-screensaver activate", FALSE,
 				&brightside->screensaver_start_pid);
 		brightside->lock_screen_timeout = gtk_timeout_add 
 			(DIALOG_TIMEOUT, 
@@ -1253,7 +1251,7 @@ applet_scroll (GtkWidget *pager, GdkEventScroll *event, gpointer data)
 
 	new_workspace = wnck_screen_get_workspace (brightside->screen, new_index);
 	if (new_workspace) {
-		wnck_workspace_activate (new_workspace);
+		wnck_workspace_activate (new_workspace, event->time);
 		pager_show (brightside, new_workspace, n_rows, TRUE);
 	}
 	
@@ -1379,12 +1377,12 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 	wrapped_point = 0;
 	xdisplay = gdk_x11_display_get_xdisplay (brightside->display);
 
-#if 0
 	Window xmoving = None;
 	WnckWindow *moving = NULL;
 	Window xresizing = None;
 
-	/* Removed pursuant to bug 131630 on bugzilla.gnome.org */
+	/* Originally removed pursuant to bug 131630 on bugzilla.gnome.org,
+	   re-enabled by ari@debian.org since this is fixed as of metacity 2.8 */
 	/* Now, this is where it gets messy.
 	 * If a window is being moved, we want it to come with us. 
 	 * If a window is being resized, we don't want to change workspace at
@@ -1401,7 +1399,6 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 #endif
 		return;
 	} 
-#endif
 	
 	/* Special case: a 1-dimensional layout is a cylinder (or Moebius 
 	 * strip), 0- and 2- dimensional layouts have closed topologies. */
@@ -1540,7 +1537,7 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 
 	new_workspace = wnck_screen_get_workspace (
 			brightside->screen, new_space);
-	wnck_workspace_activate (new_workspace);
+	wnck_workspace_activate (new_workspace, gtk_get_current_event_time());
 
 	pager_show (brightside, new_workspace, rows, FALSE);
 	

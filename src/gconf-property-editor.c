@@ -1111,7 +1111,7 @@ peditor_numeric_range_widget_changed (GConfPropertyEditor *peditor,
 	if (!peditor->p->inited) return;
 
 	/* We try to get the default type from the schemas.  if not, we default
-	 * to a float.
+	 * to an int.
 	 */
 	default_value = gconf_client_get_default_from_schema (gconf_client_get_default (),
 							      peditor->p->key,
@@ -1120,7 +1120,7 @@ peditor_numeric_range_widget_changed (GConfPropertyEditor *peditor,
 		value_wid = gconf_value_new (default_value->type);
 		gconf_value_free (default_value);
 	} else {
-		value_wid = gconf_value_new (GCONF_VALUE_FLOAT);
+		value_wid = gconf_value_new (GCONF_VALUE_INT);
 	}
 
 	g_assert (value_wid);

@@ -78,7 +78,7 @@ Data_DATA = 				\
 	brightside.svg brightside-48.png brightside-16.png
 
 schema_in_files = brightside.schemas.in
-schemadir = $(sysconfdir)/gconf/schemas
+schemadir = $(datadir)/gconf/schemas
 schema_DATA = $(schema_in_files:.schemas.in=.schemas)
 @INTLTOOL_SCHEMAS_RULE@
 
@@ -89,6 +89,3 @@ desktop_DATA = $(desktop_in_files:.desktop.in=.desktop)
 
 pixmapdir = $(datadir)/pixmaps
 pixmap_DATA = brightside-48.png
-
-install-data-local:
-	-GCONF_CONFIG_SOURCE=$(GCONF_SCHEMA_CONFIG_SOURCE) $(GCONFTOOL) --makefile-install-rule $(srcdir)/$(schema_DATA)
