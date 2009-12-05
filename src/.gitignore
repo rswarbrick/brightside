@@ -1,0 +1,6 @@
+.deps
+*.o
+brightside
+brightside-properties
+brightside.desktop
+brightside.schemas
