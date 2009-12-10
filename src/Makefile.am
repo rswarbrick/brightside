@@ -34,6 +34,7 @@ brightside_SOURCES =						\
 	brightside-volume-dummy.c brightside-volume-dummy.h		\
 	$(TRAY_ICON_files) $(ALSA_files) $(OSS_files) $(FB_files)	\
 	brightside-util.c brightside-util.h			\
+	invisible.c invisible.h \
 	brightside.c brightside.h
 
 brightside_LDFLAGS =						\

@@ -31,6 +31,8 @@
 
 /* Gnome headers */
 #include <gdk/gdkx.h>
+#include <gtk/gtk.h>
+#include <glib-object.h>
 #include <gnome.h>
 #include <glade/glade.h>
 #include <gconf/gconf-client.h>
@@ -39,6 +41,7 @@
 #include <libgnomevfs/gnome-vfs-mime-handlers.h>
 
 #include "brightside.h"
+#include "invisible.h"
 #include "brightside-volume.h"
 #ifdef USE_FBLEVEL
 #include "brightside-fb-level.h"
@@ -88,6 +91,8 @@ typedef struct {
 	GdkDisplay *display;
 	GdkScreen *current_screen;
 	GList *screens;
+
+	InvisibleBorders edge_windows;
 
 	BrightsideCornerType corner_in;
 	BrightsideRegionType region_at;
@@ -1941,6 +1946,10 @@ main (int argc, char *argv[])
 #endif
 	brightside->current_screen = gdk_screen_get_default ();
 	brightside->screen = wnck_screen_get_default ();
+
+	screen_add_invisible_borders(brightside->screen, gdk_screen_get_default(),
+								 &brightside->edge_windows);
+
 	gtk_widget_realize (brightside->dialog);
 	dialog_move_to_screen_position (brightside, brightside->dialog,
 			0.5, 0.75, FALSE);
@@ -1978,6 +1987,8 @@ main (int argc, char *argv[])
 		gtk_timeout_add (10, brightside_send_show_pager, brightside);
 
 	gtk_main ();
+
+	destroy_invisible_borders(&brightside->edge_windows);
 	
 	g_free (brightside);
 	
