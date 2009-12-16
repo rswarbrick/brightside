@@ -144,6 +144,15 @@ static struct {
 		"/apps/brightside/se_custom_kill", DPMS_STANDBY_ACTION },
 };
 
+/*
+  Do the action associated with the given region. This is called as soon as the
+  region is entered, so delays get implemented by timeouts that are set after
+  on_triggered_region is called.
+
+  The corner actions, with their own clocks, are initiated by this call.
+*/
+void on_triggered_region (BrightsideRegionType region);
+
 #define CORNER_DELAY_KEY "/apps/brightside/corner_delay"
 #define CORNER_FLIP_KEY "/apps/brightside/corner_flip"
 #define ENABLE_EDGE_FLIP_KEY "/apps/brightside/enable_edge_flip"

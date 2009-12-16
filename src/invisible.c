@@ -26,14 +26,13 @@
 #include "brightside.h"
 
 static gboolean
-say_hi(GtkWidget *widget, GdkEventCrossing *event, BrightsideRegionType rt)
+on_edge_enter (GtkWidget *widget, GdkEventCrossing *event,
+			   BrightsideRegionType rt)
 {
-	GdkWindow* win = gtk_widget_get_window(widget);
-	int x,y,w,h;
+	/* invisible.c has dealt with the question of whether there was an
+	   event. Now punt to brightside.c to deal with the event itself. */
+	on_triggered_region (rt);
 
-	gdk_window_get_geometry(win,&x,&y,&w,&h,NULL);
-	
-	g_warning("Entered. (%d,%d,%d,%d). Side: %d", x,y,w,h,rt);
 	return TRUE;
 }
 
@@ -54,15 +53,13 @@ make_invisible_window(GdkScreen* screen, BrightsideRegionType rt,
 					  int left, int top, int width, int height)
 {
 	GtkWidget* invis = gtk_invisible_new_for_screen(screen);
-	if(!invis) {
-		g_error("Failed to create invisible window.");
-	}
+	g_assert (invis);
 
 	gtk_widget_add_events (invis, GDK_ENTER_NOTIFY_MASK);
 
 	/* Slight hack, passing rt as a gpointer, but both are int's really! */
 	g_signal_connect (G_OBJECT(invis), "enter-notify-event", 
-					  G_CALLBACK(say_hi), (gpointer)rt);
+					  G_CALLBACK(on_edge_enter), (gpointer)rt);
 
 	gdk_window_move_resize (gtk_widget_get_window(invis),
 							left, top, width, height);

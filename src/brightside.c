@@ -50,7 +50,7 @@
 #include "brightside-tray.h"
 #endif
 
-typedef struct {
+struct brightside_t {
 	BrightsideVolume *volobj;
 #ifdef USE_FBLEVEL
 	BrightsideFblevel *levobj;
@@ -105,7 +105,15 @@ typedef struct {
 		BrightsideRegionType region;
 		GTimeVal time_region_entered;
 	} gesture_history [REGION_GESTURE_HISTORY];
-} Brightside;
+};
+
+typedef struct brightside_t Brightside;
+
+/* This is the (global variable) app instance. Currently it gets passed around a
+ * lot, but we don't need to do that, since it's a singleton object and thus
+ * should be treated like one.
+ */
+Brightside *brightside;
 
 enum {
 	ICON_MUTED,
@@ -1652,6 +1660,66 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 #endif
 }
 
+/* Find the region that the mouse is currently sitting in */
+static BrightsideRegionType get_mouse_region ()
+{
+	GdkScreen *screen = brightside->current_screen;
+	gint x, y;
+
+	gint maxy = gdk_screen_get_height (screen),
+		maxx = gdk_screen_get_width (screen) - 1;
+
+	gdk_display_get_pointer (brightside->display, &screen, &x, &y, NULL);
+
+	if (x > 0 && y > 0 && x < maxx && y < maxy) {
+		return NONE;
+	}
+
+	if (x == 0) {
+		if (y == 0) return NE;
+		if (y == maxy) return SE;
+		return LEFT;
+	}
+
+	if (x == maxx) {
+		if (y == 0) return NW;
+		if (y == maxy) return SW;
+		return RIGHT;
+	}
+
+	if (y == 0) return TOP;
+	return BOTTOM;
+}
+
+/* If region_before is the same as the current region, we must have reached a
+ * timeout and we should do an edge flip.
+ *
+ * Either way, this function is used by g_timeout_add(). Return FALSE so that it
+ * only gets called once.
+ */
+static gboolean maybe_edge_flip (BrightsideRegionType region_before)
+{
+	BrightsideRegionType region_now = get_mouse_region ();
+
+	if (REGION_IS_EDGE (region_now) && (region_now == region_before)) {
+		do_edge_flip(brightside, region_now);
+	}
+
+	return FALSE;
+}
+
+void on_triggered_region (BrightsideRegionType region)
+{
+	/* If on an edge, start a timer callback, which will flip when it runs
+	 * out. */
+	if (REGION_IS_EDGE (region)) {
+		/* Dodgy hack: stuffing the BrightsideRegionType region into a
+		   gpointer. They're both int's so it should work */
+		g_timeout_add(300, (GSourceFunc)&maybe_edge_flip, (gpointer)region);
+	}
+}
+
+
 gboolean
 watch_mouse (gpointer data)
 {
@@ -1877,8 +1945,6 @@ init_brightside_struct (Brightside *brightside)
 int
 main (int argc, char *argv[])
 {
-	Brightside *brightside;
-
 	GnomeProgram *brightside_program = NULL;
 	gboolean show_pager = FALSE, show_version = FALSE;
 	struct poptOption cmd_options_table[] = {
