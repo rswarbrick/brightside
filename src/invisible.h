@@ -28,7 +28,7 @@
 
 typedef struct
 {
-	GtkWidget *left, *top, *right, *bottom;
+	GtkWidget *left, *top, *right, *bottom, *tl, *tr, *bl, *br;
 } InvisibleBorders;
 
 /*

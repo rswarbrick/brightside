@@ -46,6 +46,10 @@ raise_windows(WnckScreen *screen, InvisibleBorders *b)
 	MAYBE_RAISE_WINDOW (b->right);
 	MAYBE_RAISE_WINDOW (b->top);
 	MAYBE_RAISE_WINDOW (b->bottom);
+	MAYBE_RAISE_WINDOW (b->tl);
+	MAYBE_RAISE_WINDOW (b->tr);
+	MAYBE_RAISE_WINDOW (b->bl);
+	MAYBE_RAISE_WINDOW (b->br);
 }
 
 static GtkWidget*
@@ -83,16 +87,22 @@ screen_add_invisible_borders (WnckScreen* wscreen, GdkScreen* gscreen,
 	destroy_invisible_borders (b);
 
 	b->left   = make_invisible_window (gscreen, LEFT,
-									   0, 0, 1, height);
+									   0, 1, 1, height-1);
 
 	b->top    = make_invisible_window (gscreen, TOP,
-									   0, 0, width, 1);
+									   1, 0, width-1, 1);
 
 	b->right  = make_invisible_window (gscreen, RIGHT,
-									   width-1, 0, width, height);
+									   width-1, 1, width, height-1);
 
 	b->bottom = make_invisible_window (gscreen, BOTTOM,
-									   0, height-1, width, height);
+									   1, height-1, width-1, height);
+
+	b->tl = make_invisible_window (gscreen, NE, 0, 0, 1, 1);
+	b->tr = make_invisible_window (gscreen, NW, width-1, 0, width, 1);
+	b->bl = make_invisible_window (gscreen, SE, 0, height-1, 1, height);
+	b->br = make_invisible_window (gscreen, SW,
+								   width-1, height-1, width, height);
 
 	g_signal_connect (G_OBJECT(wscreen), "window-stacking-changed",
 					  G_CALLBACK(raise_windows), b);
@@ -107,4 +117,8 @@ destroy_invisible_borders(InvisibleBorders* b)
 	MAYBE_DESTROY_WIDGET (b->top);
 	MAYBE_DESTROY_WIDGET (b->right);
 	MAYBE_DESTROY_WIDGET (b->bottom);
+	MAYBE_DESTROY_WIDGET (b->tl);
+	MAYBE_DESTROY_WIDGET (b->tr);
+	MAYBE_DESTROY_WIDGET (b->bl);
+	MAYBE_DESTROY_WIDGET (b->br);
 }
