@@ -1706,6 +1706,8 @@ static BrightsideRegionType get_mouse_region ()
  * Further edge flips come without resistance for a time of 2×MAX (flip delay).
  * This allows moving back, corner flipping even when corner_flip is false, and,
  * for the nimble, covering multiple screens in one action.
+ *
+ * TODO: The "delay2" option from watch_mouse.
  */
 static gboolean free_flipping_mode_p ()
 {
@@ -1730,33 +1732,73 @@ static gboolean free_flipping_mode_p ()
  * Either way, this function is used by g_timeout_add(). Return FALSE so that it
  * only gets called once.
  */
-static gboolean maybe_edge_flip (BrightsideRegionType region_before)
+static gboolean maybe_flip (BrightsideRegionType region_before)
 {
 	BrightsideRegionType region_now = get_mouse_region ();
 
-	if (REGION_IS_EDGE (region_now) && (region_now == region_before)) {
+	if (region_now == region_before) {
 		do_edge_flip(brightside, region_now);
 	}
 
 	return FALSE;
 }
 
-void on_triggered_region (BrightsideRegionType region)
+void do_region_action (BrightsideRegionType region, gint start_stop)
 {
-	/* If on an edge, start a timer callback, which will flip when it runs
-	 * out. */
-	if (REGION_IS_EDGE (region) && brightside->settings.edge_flip) {
-		/* Dodgy hack: stuffing the BrightsideRegionType region into a
-		   gpointer. They're both int's so it should work */
-		if (free_flipping_mode_p ()) {
-			maybe_edge_flip(region);
-		} else {
-			g_timeout_add (brightside->settings.edge_delay,
-						   (GSourceFunc)&maybe_edge_flip, (gpointer)region);
-		}
+	gint action;
+
+	if (REGION_IS_CORNER (region) &&
+		brightside->settings.corners[region].enabled &&
+		gconf_string_to_enum (actions_lookup_table,
+							  brightside->settings.corners[region].action,
+							  &action)) {
+
+		do_action (brightside, region, action, start_stop);
+
 	}
 }
 
+void on_triggered_region (BrightsideRegionType region)
+{
+	GTimeVal time_now;
+	g_get_current_time (&time_now);
+
+	/* If on an edge, start a timer callback, which will flip when it runs
+	 * out. */
+	if (REGION_IS_EDGE (region) && brightside->settings.edge_flip) {
+		if (free_flipping_mode_p ()) {
+			maybe_flip(region);
+		} else {
+			/* Dodgy hack: stuffing the BrightsideRegionType region into a
+			   gpointer. They're both int's so it should work */
+			g_timeout_add (brightside->settings.edge_delay,
+						   (GSourceFunc)&maybe_flip, (gpointer)region);
+		}
+	}
+	else if (REGION_IS_CORNER (region)) {
+		/* In free flipping mode, corners automatically behave as edges and flip
+		   instantly. */
+		if (free_flipping_mode_p ()) {
+			maybe_flip(region);
+		}
+		else if (brightside->settings.corner_flip) {
+			g_timeout_add (brightside->settings.corner_delay,
+						   (GSourceFunc)&maybe_flip, (gpointer)region);
+		}
+		else {
+			/* Activate a corner. Stuff starts to happen instantaneously:
+			 * ACTION_START, but nothing gets done until that action's timeout
+			 * completes.
+			 *
+			 * invisible.c also sets up an event handler to call ACTION_STOP if
+			 * we leave the corner again.
+			 */
+			brightside->time_corner_activated = time_now;
+
+			do_region_action(region, ACTION_START);
+		}
+	}
+}
 
 gboolean
 watch_mouse (gpointer data)
