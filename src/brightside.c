@@ -81,7 +81,7 @@ struct brightside_t {
 	guint screensaver_prod_timeout;
 	gint screensaver_start_pid;
 	guint lock_screen_timeout;
-	guint pointer_watch_timeout;
+/*	guint pointer_watch_timeout; */
 	GtkWidget *pager;
 	WnckPager *pager_pager;
 	guint pager_timeout;
@@ -554,13 +554,16 @@ update_settings_cb (GConfClient *client, guint id,
 	if (!strcmp (entry->key, CORNER_DELAY_KEY)) {
 		brightside->settings.corner_delay = gconf_client_get_int (
 				brightside->conf_client, entry->key, NULL);
-		if (brightside->pointer_watch_timeout) {
+
+		/* Remove watch_mouse! */
+		/* if (brightside->pointer_watch_timeout) {
 			gtk_timeout_remove (brightside->pointer_watch_timeout);
 			brightside->pointer_watch_timeout = gtk_timeout_add (
-				CLAMP(MIN(brightside->settings.edge_delay, 
-					brightside->settings.corner_delay) / 5,
-				20, 200), watch_mouse, brightside);
-		}
+			CLAMP(MIN(brightside->settings.edge_delay, 
+			brightside->settings.corner_delay) / 5,
+			20, 200), watch_mouse, brightside);
+			} */
+
 	} else if (!strcmp (entry->key, CORNER_FLIP_KEY)) {
 		brightside->settings.corner_flip = gconf_client_get_bool (
 				brightside->conf_client, entry->key, NULL);
@@ -574,13 +577,15 @@ update_settings_cb (GConfClient *client, guint id,
 	} else if (!strcmp (entry->key, EDGE_DELAY_KEY)) {
 		brightside->settings.edge_delay = gconf_client_get_int (
 				brightside->conf_client, entry->key, NULL);
-		if (brightside->pointer_watch_timeout) {
-			gtk_timeout_remove (brightside->pointer_watch_timeout);
-			brightside->pointer_watch_timeout = gtk_timeout_add (
-				CLAMP (MIN (brightside->settings.edge_delay, 
-					brightside->settings.corner_delay) / 5,
-				20, 200), watch_mouse, brightside);
-		}
+
+		/* Remove watch_mouse! */
+		/*if (brightside->pointer_watch_timeout) {
+		  gtk_timeout_remove (brightside->pointer_watch_timeout);
+		  brightside->pointer_watch_timeout = gtk_timeout_add (
+		  CLAMP (MIN (brightside->settings.edge_delay, 
+		  brightside->settings.corner_delay) / 5,
+		  20, 200), watch_mouse, brightside);
+		  }*/
 	} else if (!strcmp (entry->key, EDGE_WRAP_KEY)) {
 		brightside->settings.edge_wrap = gconf_client_get_bool (
 				brightside->conf_client, entry->key, NULL);
@@ -2044,10 +2049,13 @@ main (int argc, char *argv[])
 
 	/* Start filtering the events */
 	brightside->corner_in = brightside->region_at = NONE;
-	brightside->pointer_watch_timeout = gtk_timeout_add (
-			CLAMP(MIN(brightside->settings.edge_delay, 
-				brightside->settings.corner_delay) / 5,
-			20, 200), watch_mouse, brightside);
+
+	
+	/* Remove watch_mouse! */
+	/* brightside->pointer_watch_timeout = gtk_timeout_add (
+	   CLAMP(MIN(brightside->settings.edge_delay, 
+	   brightside->settings.corner_delay) / 5,
+	   20, 200), watch_mouse, brightside); */
 	
 	if (show_pager == TRUE)
 		gtk_timeout_add (10, brightside_send_show_pager, brightside);
