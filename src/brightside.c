@@ -1362,6 +1362,11 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 	WnckWorkspace *new_workspace;
 	GdkScreen *screen;
 
+	/* Store the time of last flip */
+	GTimeVal time_now;
+	g_get_current_time (&time_now);
+	brightside->time_edge_flipped = time_now;
+
 #ifdef DEBUG
 	g_print ("Request edge flip: edge is %d\n", edge);
 #endif
@@ -1696,6 +1701,29 @@ static BrightsideRegionType get_mouse_region ()
 	return BOTTOM;
 }
 
+/* Are we still in "free flipping mode"?
+ *
+ * Further edge flips come without resistance for a time of 2×MAX (flip delay).
+ * This allows moving back, corner flipping even when corner_flip is false, and,
+ * for the nimble, covering multiple screens in one action.
+ */
+static gboolean free_flipping_mode_p ()
+{
+	GTimeVal time_now;
+	glong elapsed_msec, delay;
+	g_get_current_time (&time_now);
+
+	elapsed_msec = TIMEVAL_ELAPSED_MSEC (time_now,
+										 brightside->time_edge_flipped);
+
+	delay = 2 * MAX (brightside->settings.corner_flip ?
+					 brightside->settings.corner_delay : 0,
+					 brightside->settings.edge_flip ?
+					 brightside->settings.edge_delay : 0);
+
+	return elapsed_msec <= delay;
+}
+
 /* If region_before is the same as the current region, we must have reached a
  * timeout and we should do an edge flip.
  *
@@ -1717,10 +1745,15 @@ void on_triggered_region (BrightsideRegionType region)
 {
 	/* If on an edge, start a timer callback, which will flip when it runs
 	 * out. */
-	if (REGION_IS_EDGE (region)) {
+	if (REGION_IS_EDGE (region) && brightside->settings.edge_flip) {
 		/* Dodgy hack: stuffing the BrightsideRegionType region into a
 		   gpointer. They're both int's so it should work */
-		g_timeout_add(300, (GSourceFunc)&maybe_edge_flip, (gpointer)region);
+		if (free_flipping_mode_p ()) {
+			maybe_edge_flip(region);
+		} else {
+			g_timeout_add (brightside->settings.edge_delay,
+						   (GSourceFunc)&maybe_edge_flip, (gpointer)region);
+		}
 	}
 }
 
@@ -1942,9 +1975,15 @@ watch_mouse (gpointer data)
 static void
 init_brightside_struct (Brightside *brightside)
 {
+	GTimeVal time_now;
 	gint i;
+
 	for (i = 0; i < REGION_GESTURE_HISTORY; ++i)
 		brightside->gesture_history[i].region = NONE;
+
+	/* Initialise to a state as if we just did an edge flip. */
+	g_get_current_time (&time_now);
+	brightside->time_edge_flipped = time_now;
 }
 
 int
