@@ -1562,8 +1562,6 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 			brightside->screen, new_space);
 	wnck_workspace_activate (new_workspace, gtk_get_current_event_time());
 
-	pager_show (brightside, new_workspace, rows, FALSE);
-	
 	gdk_display_get_pointer (brightside->display, &screen, 
 			&oldx, &oldy, NULL);
 	x = gdk_screen_get_width(screen);
@@ -1611,6 +1609,9 @@ do_edge_flip (Brightside *brightside, gint edge) /* or corner flip, now */
 	g_print ("gives %d, %d\n", x, y);
 #endif
 	execute (brightside->settings.after_flip_command, FALSE, NULL);
+
+	pager_show (brightside, new_workspace, rows, FALSE);
+
 #if 0
 	if (moving != NULL) {
 		int moving_dx, moving_dy; /* offset of pointer from window */
