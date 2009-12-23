@@ -1702,29 +1702,48 @@ static BrightsideRegionType get_mouse_region ()
 	return BOTTOM;
 }
 
+static glong time_since_edge_flip ()
+{
+	GTimeVal time_now;
+	g_get_current_time (&time_now);
+	return TIMEVAL_ELAPSED_MSEC (time_now, brightside->time_edge_flipped);
+}
+
+static glong free_flipping_length ()
+{
+	return 2 * MAX (brightside->settings.corner_flip ?
+					brightside->settings.corner_delay : 0,
+					brightside->settings.edge_flip ?
+					brightside->settings.edge_delay : 0);
+}
+
 /* Are we still in "free flipping mode"?
  *
  * Further edge flips come without resistance for a time of 2×MAX (flip delay).
  * This allows moving back, corner flipping even when corner_flip is false, and,
  * for the nimble, covering multiple screens in one action.
- *
- * TODO: The "delay2" option from watch_mouse.
  */
 static gboolean free_flipping_mode_p ()
 {
-	GTimeVal time_now;
-	glong elapsed_msec, delay;
-	g_get_current_time (&time_now);
+	return time_since_edge_flip () <= free_flipping_length ();
+}
 
-	elapsed_msec = TIMEVAL_ELAPSED_MSEC (time_now,
-										 brightside->time_edge_flipped);
+/*
+ * In normal circumstances this returns the edge delay set in the settings
+ * dialog. The only other time is when we've just left free flipping mode. In
+ * which case, the delay is the time since free flipping mode finished. This was
+ * called "delay2" in the old watch_mouse() implementation.
+ *
+ * The code assumes that we're _not_ in free flipping mode.
+ */
+static glong current_edge_delay ()
+{
+	glong elapsed = time_since_edge_flip () - free_flipping_length (),
+		std_delay = brightside->settings.edge_delay;
 
-	delay = 2 * MAX (brightside->settings.corner_flip ?
-					 brightside->settings.corner_delay : 0,
-					 brightside->settings.edge_flip ?
-					 brightside->settings.edge_delay : 0);
+	g_assert (elapsed > 0);
 
-	return elapsed_msec <= delay;
+	return (elapsed < std_delay) ? elapsed : std_delay;
 }
 
 /* If region_before is the same as the current region, we must have reached a
@@ -1772,7 +1791,7 @@ void on_triggered_region (BrightsideRegionType region)
 		} else {
 			/* Dodgy hack: stuffing the BrightsideRegionType region into a
 			   gpointer. They're both int's so it should work */
-			g_timeout_add (brightside->settings.edge_delay,
+			g_timeout_add (current_edge_delay (),
 						   (GSourceFunc)&maybe_flip, (gpointer)region);
 		}
 	}
