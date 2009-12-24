@@ -27,8 +27,6 @@
 #include <gconf/gconf-client.h>
 #include <gdk/gdkx.h>
 
-/* from gnome-control-center common */
-#include "gconf-property-editor.h"
 #include "capplet-util.h"
 
 #include "brightside-properties-shared.h"
@@ -52,68 +50,6 @@ is_running (void)
 	gdk_flush();
 
 	return result;
-}
-
-static GConfValue *
-corner_flip_from_widget (GConfPropertyEditor *peditor, GConfValue *value)
-{
-	GConfValue *new_value;
-
-	new_value = gconf_value_new (GCONF_VALUE_BOOL);
-	gconf_value_set_bool (new_value, (gconf_value_get_int (value) == 1));
-	return new_value;
-}
-
-static GConfValue *
-corner_flip_to_widget (GConfPropertyEditor *peditor, GConfValue *value)
-{
-	GConfValue *new_value;
-
-	new_value = gconf_value_new (GCONF_VALUE_INT);
-	gconf_value_set_int (new_value, (value 
-				&& (value->type == GCONF_VALUE_BOOL)
-				&& gconf_value_get_bool (value)) ? 1 : 0);
-	return new_value;
-}
-
-static GConfValue *
-action_from_widget (GConfPropertyEditor *peditor, GConfValue *value)
-{
-	GConfValue *new_value;
-
-	new_value = gconf_value_new (GCONF_VALUE_STRING);
-	gconf_value_set_string (new_value, 
-			gconf_enum_to_string (actions_lookup_table, 
-				gconf_value_get_int (value)));
-	return new_value;
-}
-
-static GConfValue *
-action_to_widget (GConfPropertyEditor *peditor, GConfValue *value)
-{
-	GConfValue *new_value;
-	const gchar *str;
-	gint val = 0;
-
-	str = (value && (value->type == GCONF_VALUE_STRING))
-		? gconf_value_get_string (value) : NULL;
-	new_value = gconf_value_new (GCONF_VALUE_INT);
-	gconf_string_to_enum (actions_lookup_table, str, &val);
-	gconf_value_set_int (new_value, val);
-
-	return new_value;
-}
-
-static void
-corner_action_changed_cb (GtkOptionMenu *menu, gpointer corner)
-{
-	if (gtk_option_menu_get_history (menu) == CUSTOM_ACTION)
-		show_custom_action_dialog (
-				GTK_WINDOW (gtk_widget_get_ancestor (
-						GTK_WIDGET (menu), 
-						GTK_TYPE_DIALOG)),
-				GPOINTER_TO_INT (corner), 
-				conf_client, NULL);
 }
 
 static void
@@ -214,61 +150,9 @@ create_dialog (void)
 	return dialog;
 }
 
-static void
-setup_dialog (GladeXML *dialog, GConfChangeSet *changeset)
-{
-	GObject *peditor;
-	gint corner;
-	
-	for (corner = REGION_FIRST_CORNER; REGION_IS_CORNER (corner); 
-			++corner) {
-		GtkWidget *toggle = WID (corners[corner].enabled_toggle_id);
-		GtkWidget *menu = WID (corners[corner].action_menu_id);
-		peditor = gconf_peditor_new_boolean (NULL, 
-				(gchar *) corners[corner].enabled_key,
-				toggle, NULL);
-		g_signal_connect (GTK_OBJECT (toggle), "toggled", 
-				G_CALLBACK (update_widgets_sensitive_cb),
-				dialog);
-		gconf_peditor_new_select_menu (NULL,
-				(gchar *) corners[corner].action_key, menu, 
-				"conv-to-widget-cb", action_to_widget,
-				"conv-from-widget-cb", action_from_widget,
-				NULL);
-		g_signal_connect (GTK_OBJECT (menu), "changed", 
-			G_CALLBACK (corner_action_changed_cb), 
-			GINT_TO_POINTER (corner));
-	}
-	gconf_peditor_new_select_radio (NULL,
-			CORNER_FLIP_KEY, gtk_radio_button_get_group (
-				GTK_RADIO_BUTTON (WID ("corners_flip"))),
-			"conv-to-widget-cb", corner_flip_to_widget,
-			"conv-from-widget-cb", corner_flip_from_widget,
-			NULL);
-	g_signal_connect (GTK_OBJECT (WID ("corners_flip")), "toggled", 
-			G_CALLBACK (update_widgets_sensitive_cb), dialog);
-	g_signal_connect (GTK_OBJECT (WID ("edge_flip_enabled")), "toggled", 
-			G_CALLBACK (update_widgets_sensitive_cb), dialog);
-	/* call callback to set delay slider sensitive state */
-	update_widgets_sensitive_cb (NULL, dialog);
-	gconf_peditor_new_numeric_range (NULL, CORNER_DELAY_KEY, 
-			WID ("corner_delay_scale"), NULL);
-
-	peditor = gconf_peditor_new_boolean (NULL, ENABLE_EDGE_FLIP_KEY, 
-			WID ("edge_flip_enabled"), NULL);
-	gconf_peditor_widget_set_guard (GCONF_PROPERTY_EDITOR (peditor),
-			WID ("edge_delay_scale"));
-	gconf_peditor_new_numeric_range (NULL, EDGE_DELAY_KEY, 
-			WID ("edge_delay_scale"), NULL);
-	gconf_peditor_new_boolean (NULL, EDGE_WRAP_KEY, 
-			WID ("edge_wrap_enabled"), NULL);
-}
-
 int
 main (int argc, char *argv[])
 {
-	GConfClient	*client;
-	GConfChangeSet	*changeset;
 	GladeXML	*dialog = NULL;
 	GtkWidget	*dialog_win;
 	
@@ -280,14 +164,7 @@ main (int argc, char *argv[])
 			LIBGNOMEUI_MODULE, argc, argv,
 			NULL);
 
-	client = gconf_client_get_default ();
-	gconf_client_add_dir (client, BRIGHTSIDE_KEY_ROOT,
-			GCONF_CLIENT_PRELOAD_RECURSIVE, NULL);
-	conf_client = client;
-
-	changeset = gconf_change_set_new ();
 	dialog = create_dialog ();
-	setup_dialog (dialog, changeset);
 
 	dialog_win = gtk_dialog_new_with_buttons(
 			_("Screen Actions"), NULL, 
@@ -299,8 +176,7 @@ main (int argc, char *argv[])
 	gtk_box_set_spacing (GTK_BOX (GTK_DIALOG(dialog_win)->vbox), 2);
 	gtk_dialog_set_default_response (GTK_DIALOG (dialog_win), 
 			GTK_RESPONSE_CLOSE);
-	g_signal_connect (G_OBJECT (dialog_win), "response", 
-			(GCallback) dialog_button_clicked_cb, changeset);
+
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_win)->vbox), 
 			WID ("prefs_widget"), TRUE, TRUE, 0);
 	gtk_window_set_resizable (GTK_WINDOW (dialog_win), FALSE);
@@ -312,8 +188,6 @@ main (int argc, char *argv[])
 		g_spawn_command_line_async ("brightside", NULL);
 	
 	gtk_main ();
-
-	gconf_change_set_unref (changeset);
 
 	g_object_unref (dialog);
 
