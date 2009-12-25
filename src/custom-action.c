@@ -39,12 +39,11 @@ static void
 run_toggled_cb (GtkToggleButton *toggle, GladeXML *dialog)
 {
 	gtk_widget_set_sensitive (WID ("out_entry"), 
-			gtk_toggle_button_get_active (toggle));
+							  gtk_toggle_button_get_active (toggle));
 }
 
 static void
-dialog_button_clicked_cb (GtkDialog *dialog, gint response_id, 
-		GConfChangeSet *changeset)
+dialog_button_clicked_cb (GtkDialog *dialog, gint response_id, gpointer *ignored)
 {
 	if (response_id == GTK_RESPONSE_HELP)
 		gnome_url_show (HELP_URL, NULL);
@@ -58,47 +57,38 @@ create_dialog (void)
 	GladeXML *dialog;
 
 	dialog = glade_xml_new (BRIGHTSIDE_DATA "custom-action.glade", 
-			"action_widget", NULL);
+							"action_widget", NULL);
 	g_object_set_data (G_OBJECT (WID ("action_widget")), 
-			"glade-data", dialog);
+					   "glade-data", dialog);
 
 	return dialog;
 }
 
 static void
-setup_dialog (gint corner, GladeXML *dialog, 
-		GConfClient *client, GConfChangeSet *changeset)
+setup_dialog (gint corner, GladeXML *dialog)
 {
 	GObject *peditor;
 	GtkWidget *entry;
 	gboolean b;
 	
-	gconf_peditor_new_string (NULL, 
-			(gchar *) corners[corner].custom_in_key,
-			WID ("in_entry"), NULL);
-	gconf_peditor_new_boolean (NULL,
-			(gchar *) corners[corner].custom_kill_key,
-			WID ("terminate_radio"), NULL);
 	g_signal_connect (GTK_OBJECT (WID ("run_radio")), "toggled",
 			G_CALLBACK (run_toggled_cb), dialog);
-	b = !gconf_client_get_bool (client, 
-			corners[corner].custom_kill_key, NULL);
+
+	b = TRUE;
+	/*!gconf_client_get_bool (client, 
+	  corners[corner].custom_kill_key, NULL);*/
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (WID ("run_radio")), b);
 	gtk_widget_set_sensitive (WID ("out_entry"), b);
-	gconf_peditor_new_string (NULL, 
-			(gchar *) corners[corner].custom_out_key,
-			WID ("out_entry"), NULL);
 }
 
 void
-show_custom_action_dialog (GtkWindow *parent, gint corner, 
-		GConfClient *client, GConfChangeSet *changeset)
+show_custom_action_dialog (GtkWindow *parent, gint corner)
 {
 	GladeXML *dialog = NULL;
 	GtkWidget *dialog_win;
 
 	dialog = create_dialog ();
-	setup_dialog (corner, dialog, client, changeset);
+	setup_dialog (corner, dialog);
 
 	dialog_win = gtk_dialog_new_with_buttons(
 			_("Custom action"), parent, 
@@ -111,8 +101,10 @@ show_custom_action_dialog (GtkWindow *parent, gint corner,
 	gtk_box_set_spacing (GTK_BOX (GTK_DIALOG (dialog_win)->vbox), 2);
 	gtk_dialog_set_default_response (GTK_DIALOG (dialog_win), 
 			GTK_RESPONSE_CLOSE);
+
 	g_signal_connect (G_OBJECT (dialog_win), "response", 
-			(GCallback) dialog_button_clicked_cb, changeset);
+					  (GCallback) dialog_button_clicked_cb, NULL);
+
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_win)->vbox), 
 			WID ("action_widget"), TRUE, TRUE, 0);
 	gtk_window_set_resizable (GTK_WINDOW (dialog_win), FALSE);

@@ -22,10 +22,7 @@
 #ifndef __BRIGHTSIDE_PROPERTIES_SHARED_H__
 #define __BRIGHTSIDE_PROPERTIES_SHARED_H__
 
-void show_custom_action_dialog (	GtkWindow *parent,
-					gint corner, 
-					GConfClient *client, 
-					GConfChangeSet *changeset );
+void show_custom_action_dialog (GtkWindow *parent, gint corner);
 
 #endif /* __BRIGHTSIDE_PROPERTIES_SHARED_H__ */
 

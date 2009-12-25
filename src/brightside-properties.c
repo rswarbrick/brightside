@@ -320,13 +320,21 @@ on_corner_action_changed (GtkOptionMenu *menu,
 						  const struct corner_desc *corner)
 {
 	GConfClient *client = gconf_client_get_default ();
+	gint menu_index = gtk_option_menu_get_history (menu);
+	const gchar* action = gconf_enum_to_string (actions_lookup_table,
+												menu_index);
 
-	const gchar* action =
-		gconf_enum_to_string (actions_lookup_table,
-							  gtk_option_menu_get_history (menu));
 	if (!action) {
 		g_warning ("Got an invalid action. Switching to default.\n");
-		action = gconf_enum_to_string (actions_lookup_table, MUTE_VOLUME_ACTION);
+		action = gconf_enum_to_string (actions_lookup_table,
+									   MUTE_VOLUME_ACTION);
+		menu_index = MUTE_VOLUME_ACTION;
+	}
+	else if (menu_index == CUSTOM_ACTION) {
+		show_custom_action_dialog (
+			GTK_WINDOW (gtk_widget_get_ancestor (
+							GTK_WIDGET (menu), GTK_TYPE_DIALOG)),
+			GPOINTER_TO_INT (corner));
 	}
 
 	gconf_client_set_string (client, corner->action_key, action, NULL);
@@ -482,11 +490,12 @@ main (int argc, char *argv[])
 	gtk_widget_show_all (dialog_win);
 
 	init_gconf_callbacks ();
-	init_ui_callbacks ();
-	
+
 	client = gconf_client_get_default ();
 	gconf_client_notify_dir (client, "/apps/brightside");
 	g_object_unref (client);
+
+	init_ui_callbacks ();
 
 	if (is_running () == FALSE)
 		g_spawn_command_line_async ("brightside", NULL);
