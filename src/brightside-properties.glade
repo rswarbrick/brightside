@@ -117,7 +117,6 @@
                                             <property name="receives_default">False</property>
                                             <property name="use_underline">True</property>
                                             <property name="draw_indicator">True</property>
-                                            <signal name="toggled" handler="corner_toggled_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="x_options">GTK_FILL</property>
@@ -132,7 +131,6 @@
                                             <property name="receives_default">False</property>
                                             <property name="use_underline">True</property>
                                             <property name="draw_indicator">True</property>
-                                            <signal name="toggled" handler="corner_toggled_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="top_attach">3</property>
@@ -149,7 +147,6 @@
                                             <property name="receives_default">False</property>
                                             <property name="use_underline">True</property>
                                             <property name="draw_indicator">True</property>
-                                            <signal name="toggled" handler="corner_toggled_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="top_attach">1</property>
@@ -166,7 +163,6 @@
                                             <property name="receives_default">False</property>
                                             <property name="use_underline">True</property>
                                             <property name="draw_indicator">True</property>
-                                            <signal name="toggled" handler="corner_toggled_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="top_attach">2</property>
@@ -180,7 +176,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
-                                            <signal name="changed" handler="corner_action_changed_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -193,7 +188,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
-                                            <signal name="changed" handler="corner_action_changed_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -208,7 +202,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
-                                            <signal name="changed" handler="corner_action_changed_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -223,7 +216,6 @@
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
                                             <property name="receives_default">False</property>
-                                            <signal name="changed" handler="corner_action_changed_cb"/>
                                           </widget>
                                           <packing>
                                             <property name="left_attach">1</property>
@@ -304,7 +296,6 @@
                                 <property name="adjustment">550.40983606557381 100 1500 10 10 0</property>
                                 <property name="digits">0</property>
                                 <property name="draw_value">False</property>
-                                <signal name="value_changed" handler="corner_delay_changed_cb"/>
                               </widget>
                               <packing>
                                 <property name="position">2</property>
@@ -389,7 +380,6 @@
                             <property name="receives_default">False</property>
                             <property name="use_underline">True</property>
                             <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="edge_flip_toggled_cb"/>
                           </widget>
                           <packing>
                             <property name="expand">False</property>
@@ -432,7 +422,6 @@
                                 <property name="adjustment">490 100 1500 10 10 0</property>
                                 <property name="digits">0</property>
                                 <property name="draw_value">False</property>
-                                <signal name="value_changed" handler="edge_delay_changed_cb"/>
                               </widget>
                               <packing>
                                 <property name="position">2</property>

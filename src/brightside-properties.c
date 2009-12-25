@@ -62,47 +62,6 @@ is_running (void)
 }
 
 static void
-update_widgets_sensitive_cb (gpointer *data, GladeXML *dialog)
-{
-	gboolean corner_delay_state;
-	gboolean corner_actions_state;
-	gint corner;
-	if (gtk_toggle_button_get_active (
-				GTK_TOGGLE_BUTTON (WID ("corners_flip")))) {
-		corner_delay_state = TRUE;
-		corner_actions_state = FALSE;
-	} else {
-		corner_delay_state = FALSE;
-		corner_actions_state = TRUE;
-		for (corner = REGION_FIRST_CORNER; REGION_IS_CORNER (corner); 
-				++corner)
-			corner_delay_state |= gtk_toggle_button_get_active
-				(GTK_TOGGLE_BUTTON
-				 (WID (corners[corner].enabled_toggle_id)));
-	}
-	for (corner = REGION_FIRST_CORNER; REGION_IS_CORNER (corner); 
-			++corner) {
-		gtk_widget_set_sensitive (
-				WID (corners[corner].enabled_toggle_id),
-				corner_actions_state);
-		gtk_widget_set_sensitive (
-				WID (corners[corner].action_menu_id),
-				corner_actions_state
-				&& gtk_toggle_button_get_active
-				(GTK_TOGGLE_BUTTON 
-				 (WID (corners[corner].enabled_toggle_id))));
-	}
-	gtk_widget_set_sensitive 
-		(WID ("corner_delay_scale"), corner_delay_state);
-	gtk_widget_set_sensitive 
-		(WID ("edge_wrap_enabled"), 
-		 gtk_toggle_button_get_active (
-			 GTK_TOGGLE_BUTTON (WID ("corners_flip"))) ||
-		 gtk_toggle_button_get_active (
-			 GTK_TOGGLE_BUTTON (WID ("edge_flip_enabled"))));
-}
-
-static void
 dialog_button_clicked_cb (GtkDialog *dialog, gint response_id, 
 		GConfChangeSet *changeset)
 {
@@ -158,6 +117,8 @@ create_dialog (void)
 
 	return dialog;
 }
+
+/***** Callbacks that respond to external stimuli and update the dialog *******/
 
 static void
 on_set_corner_enabled (const struct corner_desc* corner, gboolean enabled)
@@ -341,6 +302,133 @@ init_gconf_callbacks ()
 	g_object_unref (client);
 }
 
+static void
+on_corner_enabled_toggle (GtkToggleButton *togglebutton,
+						  const struct corner_desc *corner)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_bool (client, corner->enabled_key,
+						   gtk_toggle_button_get_active (togglebutton),
+						   NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_corner_action_changed (GtkOptionMenu *menu,
+						  const struct corner_desc *corner)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	const gchar* action =
+		gconf_enum_to_string (actions_lookup_table,
+							  gtk_option_menu_get_history (menu));
+	if (!action) {
+		g_warning ("Got an invalid action. Switching to default.\n");
+		action = gconf_enum_to_string (actions_lookup_table, MUTE_VOLUME_ACTION);
+	}
+
+	gconf_client_set_string (client, corner->action_key, action, NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_corners_configurable_toggle (GtkToggleButton *togglebutton,
+								gpointer *ignored)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_bool (client, "/apps/brightside/corner_flip",
+						   !gtk_toggle_button_get_active (togglebutton),
+						   NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_corner_delay_changed (GtkRange *range, gpointer *ignored)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_int (client, "/apps/brightside/corner_delay",
+						  (gint)gtk_range_get_value (range),
+						  NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_edge_flip_toggle (GtkToggleButton *togglebutton, gpointer *ignored)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_bool (client, "/apps/brightside/enable_edge_flip",
+						  gtk_toggle_button_get_active (togglebutton),
+						  NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_edge_delay_changed (GtkRange *range, gpointer *ignored)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_int (client, "/apps/brightside/edge_delay",
+						  (gint)gtk_range_get_value (range),
+						  NULL);
+
+	g_object_unref (client);
+}
+
+static void
+on_edge_wrap_toggle (GtkToggleButton *togglebutton, gpointer *ignored)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gconf_client_set_bool (client, "/apps/brightside/edge_wrap",
+						  gtk_toggle_button_get_active (togglebutton),
+						  NULL);
+
+	g_object_unref (client);
+}
+
+/* Set up callbacks to update gconf when dialog properties change */
+static void
+init_ui_callbacks ()
+{
+	int i;
+
+	for (i = 0; i < 4; i++) {
+		g_signal_connect (
+			G_OBJECT (named_widget (corners[i].enabled_toggle_id)),
+			"toggled", (GCallback)on_corner_enabled_toggle,
+			(gpointer)&corners[i]);
+		g_signal_connect (
+			G_OBJECT (named_widget (corners[i].action_menu_id)),
+			"changed", (GCallback)on_corner_action_changed,
+			(gpointer)&corners[i]);
+	}
+
+	g_signal_connect (G_OBJECT (named_widget ("corners_configurable")),
+					  "toggled",
+					  (GCallback)on_corners_configurable_toggle, NULL);
+	g_signal_connect (G_OBJECT (named_widget ("corner_delay_scale")),
+					  "value-changed",
+					  (GCallback)on_corner_delay_changed, NULL);
+	g_signal_connect (G_OBJECT (named_widget ("edge_flip_enabled")),
+					  "toggled",
+					  (GCallback)on_edge_flip_toggle, NULL);
+	g_signal_connect (G_OBJECT (named_widget ("edge_delay_scale")),
+					  "value-changed",
+					  (GCallback)on_edge_delay_changed, NULL);
+	g_signal_connect (G_OBJECT (named_widget ("edge_wrap_enabled")),
+					  "toggled",
+					  (GCallback)on_edge_wrap_toggle, NULL);
+}
+
 int
 main (int argc, char *argv[])
 {
@@ -378,6 +466,7 @@ main (int argc, char *argv[])
 	gtk_widget_show_all (dialog_win);
 
 	init_gconf_callbacks ();
+	init_ui_callbacks ();
 	
 	if (is_running () == FALSE)
 		g_spawn_command_line_async ("brightside", NULL);
