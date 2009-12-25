@@ -429,10 +429,26 @@ init_ui_callbacks ()
 					  (GCallback)on_edge_wrap_toggle, NULL);
 }
 
+void
+gconf_client_notify_dir (GConfClient *client, const char *dir)
+{
+	GSList *list = gconf_client_all_entries (client, dir, NULL);
+	GSList *elt;
+	GConfEntry *entry;
+
+	for (elt = list; elt; elt = g_slist_next(elt)) {
+		entry = (GConfEntry*)elt->data;
+		gconf_client_notify (client, entry->key);
+		gconf_entry_free (entry);
+	}
+	g_slist_free (list);
+}
+
 int
 main (int argc, char *argv[])
 {
 	GtkWidget	*dialog_win;
+	GConfClient *client;
 	
 	bindtextdomain (GETTEXT_PACKAGE, GNOMELOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -468,6 +484,10 @@ main (int argc, char *argv[])
 	init_gconf_callbacks ();
 	init_ui_callbacks ();
 	
+	client = gconf_client_get_default ();
+	gconf_client_notify_dir (client, "/apps/brightside");
+	g_object_unref (client);
+
 	if (is_running () == FALSE)
 		g_spawn_command_line_async ("brightside", NULL);
 	
