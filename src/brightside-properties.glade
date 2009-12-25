@@ -301,7 +301,7 @@
                               <widget class="GtkHScale" id="corner_delay_scale">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="adjustment">500 100 1500 10 10 0</property>
+                                <property name="adjustment">550.40983606557381 100 1500 10 10 0</property>
                                 <property name="digits">0</property>
                                 <property name="draw_value">False</property>
                                 <signal name="value_changed" handler="corner_delay_changed_cb"/>
@@ -379,6 +379,7 @@
                     <child>
                       <widget class="GtkVBox" id="vbox7">
                         <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
                         <property name="spacing">6</property>
                         <child>
                           <widget class="GtkCheckButton" id="edge_flip_enabled">

@@ -33,7 +33,16 @@
 #include "brightside-properties.h"
 #include "brightside.h"
 
-GConfClient *conf_client;
+GladeXML *dialog = NULL;
+
+static GtkWidget*
+named_widget (const gchar* name)
+{
+	g_assert (dialog);
+	GtkWidget* widget = glade_xml_get_widget (dialog, name);
+	g_assert (widget);
+	return widget;
+}
 
 static gboolean
 is_running (void)
@@ -125,7 +134,7 @@ populate_menus (GladeXML *dialog)
 		menu = gtk_menu_new();
 		for (action = 0; action < HANDLED_ACTIONS; ++action) {
 			menuitem = gtk_menu_item_new_with_label (
-					action_descriptions[action]);
+				action_descriptions[action]);
 			gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
 		}
 		gtk_option_menu_set_menu (GTK_OPTION_MENU (
@@ -150,10 +159,191 @@ create_dialog (void)
 	return dialog;
 }
 
+static void
+on_set_corner_enabled (const struct corner_desc* corner, gboolean enabled)
+{
+	GConfClient *client = gconf_client_get_default ();
+
+	gtk_toggle_button_set_active (
+		GTK_TOGGLE_BUTTON (named_widget (corner->enabled_toggle_id)),
+		enabled);
+	gtk_widget_set_sensitive (
+		named_widget (corner->action_menu_id),
+		enabled && !gconf_client_get_bool (
+			client, "/apps/brightside/corner_flip", NULL));
+
+	g_object_unref (client);
+}
+
+static void
+on_set_corner_action (const struct corner_desc* corner, const gchar* action)
+{
+	gint enum_val;
+	GConfClient *client = gconf_client_get_default ();
+
+	if (!gconf_string_to_enum (actions_lookup_table, action, &enum_val)) {
+		g_warning ("Invalid corner action stored. Setting to mute.\n");
+		gconf_client_set_string (client,
+								 corner->action_key,
+								 gconf_enum_to_string (actions_lookup_table,
+													   MUTE_VOLUME_ACTION),
+								 NULL);
+		enum_val = MUTE_VOLUME_ACTION;
+	}
+
+	gtk_option_menu_set_history (
+		GTK_OPTION_MENU (named_widget (corner->action_menu_id)),
+		enum_val);
+
+	g_object_unref (client);
+}
+
+static void
+on_set_corner_flip (gboolean enabled)
+{
+	GConfClient *client = gconf_client_get_default ();
+	int i;
+
+	gtk_toggle_button_set_active (
+		GTK_TOGGLE_BUTTON (named_widget (enabled ?
+										 "corners_flip" :
+										 "corners_configurable")),
+		TRUE);
+
+	for (i = 0; i < 4; i++) {
+		gtk_widget_set_sensitive (
+			named_widget (corners[i].action_menu_id),
+			!enabled &&
+			gconf_client_get_bool (client, corners[i].enabled_key, NULL));
+		gtk_widget_set_sensitive (
+			named_widget (corners[i].enabled_toggle_id), !enabled);
+	}
+
+
+	g_object_unref (client);
+}
+
+static void
+on_set_corner_delay (gint delay)
+{
+	gtk_range_set_value (GTK_RANGE (named_widget ("corner_delay_scale")),
+						 delay);
+}
+
+static void
+on_set_edge_flip (gboolean flip)
+{
+	gtk_toggle_button_set_active (
+		GTK_TOGGLE_BUTTON (named_widget ("edge_flip_enabled")),
+		flip);
+	gtk_widget_set_sensitive (named_widget ("edge_delay_scale"), flip);
+}
+
+static void
+on_set_edge_delay (gint delay)
+{
+	gtk_range_set_value (GTK_RANGE (named_widget ("edge_delay_scale")),
+						 delay);
+}
+
+static void
+on_set_edge_wrap (gboolean wrap)
+{
+	gtk_toggle_button_set_active (
+		GTK_TOGGLE_BUTTON (named_widget ("edge_wrap_enabled")),
+		wrap);
+}
+
+/**************** Notification functions called from gconf ********************/
+static void
+corner_enabled_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					   const struct corner_desc* corner)
+{
+	on_set_corner_enabled (corner, gconf_value_get_bool (entry->value));
+}
+
+static void
+corner_action_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					  const struct corner_desc* corner)
+{
+	on_set_corner_action (corner, gconf_value_get_string (entry->value));
+}
+
+static void
+corner_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					void* ignored)
+{
+	on_set_corner_flip (gconf_value_get_bool (entry->value));
+}
+
+static void
+corner_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					void* ignored)
+{
+	on_set_corner_delay (gconf_value_get_int (entry->value));
+}
+
+static void
+edge_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+				  void* ignored)
+{
+	on_set_edge_flip (gconf_value_get_bool (entry->value));
+}
+
+static void
+edge_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+				   void* ignored)
+{
+	on_set_edge_delay (gconf_value_get_int (entry->value));
+}
+
+static void
+edge_wrap_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+				  void* ignored)
+{
+	on_set_edge_wrap (gconf_value_get_bool (entry->value));
+}
+
+/* Set up callbacks which update the dialog when gconf key values change. */
+static void
+init_gconf_callbacks ()
+{
+	GConfClient *client = gconf_client_get_default ();
+	gint i;
+
+	gconf_client_add_dir (client, "/apps/brightside",
+						  GCONF_CLIENT_PRELOAD_ONELEVEL,
+						  NULL);
+	for (i = 0; i < 4; i++) {
+		gconf_client_notify_add (client, corners[i].enabled_key,
+								 (GConfClientNotifyFunc)corner_enabled_notify,
+								 (void*)&corners[i], NULL, NULL);
+		gconf_client_notify_add (client, corners[i].action_key,
+								 (GConfClientNotifyFunc)corner_action_notify,
+								 (void*)&corners[i], NULL, NULL);
+	}
+	gconf_client_notify_add (client, "/apps/brightside/corner_flip",
+							 (GConfClientNotifyFunc)corner_flip_notify,
+							 NULL, NULL, NULL);
+	gconf_client_notify_add (client, "/apps/brightside/corner_delay",
+							 (GConfClientNotifyFunc)corner_delay_notify,
+							 NULL, NULL, NULL);
+	gconf_client_notify_add (client, "/apps/brightside/enable_edge_flip",
+							 (GConfClientNotifyFunc)edge_flip_notify,
+							 NULL, NULL, NULL);
+	gconf_client_notify_add (client, "/apps/brightside/edge_delay",
+							 (GConfClientNotifyFunc)edge_delay_notify,
+							 NULL, NULL, NULL);
+	gconf_client_notify_add (client, "/apps/brightside/edge_wrap",
+							 (GConfClientNotifyFunc)edge_wrap_notify,
+							 NULL, NULL, NULL);
+
+	g_object_unref (client);
+}
+
 int
 main (int argc, char *argv[])
 {
-	GladeXML	*dialog = NULL;
 	GtkWidget	*dialog_win;
 	
 	bindtextdomain (GETTEXT_PACKAGE, GNOMELOCALEDIR);
@@ -177,12 +367,17 @@ main (int argc, char *argv[])
 	gtk_dialog_set_default_response (GTK_DIALOG (dialog_win), 
 			GTK_RESPONSE_CLOSE);
 
+	g_signal_connect (G_OBJECT (dialog_win), "response",
+					  (GCallback) dialog_button_clicked_cb, NULL);
+
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_win)->vbox), 
 			WID ("prefs_widget"), TRUE, TRUE, 0);
 	gtk_window_set_resizable (GTK_WINDOW (dialog_win), FALSE);
 	gtk_window_set_icon_from_file (GTK_WINDOW (dialog_win), 
 			BRIGHTSIDE_DATA "brightside.svg", NULL);
 	gtk_widget_show_all (dialog_win);
+
+	init_gconf_callbacks ();
 	
 	if (is_running () == FALSE)
 		g_spawn_command_line_async ("brightside", NULL);

@@ -82,7 +82,7 @@ static GConfEnumStringPair actions_lookup_table[HANDLED_ACTIONS + 1] = {
 	{ DIM_BACKLIGHT_ACTION, "dimbacklight", },
 #endif
 	{ CUSTOM_ACTION, "custom", },
-	{ -1, NULL },
+	{ 0, NULL },
 };
 
 /* Can change ordering as long as whole contents of this file are updated */
@@ -111,7 +111,7 @@ typedef BrightsideRegionType BrightsideCornerType;
 #define REGION_GESTURE_CODES "FLTJNSWE" /* corners are Graffiti strokes */
 #define REGION_GESTURE_HISTORY 8
 
-static struct {
+static struct corner_desc {
 	BrightsideCornerType id;
 	const gchar *enabled_key;
 	const char *enabled_toggle_id;
