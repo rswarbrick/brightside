@@ -98,10 +98,10 @@ screen_add_invisible_borders (WnckScreen* wscreen, GdkScreen* gscreen,
 	b->bottom = make_invisible_window (gscreen, BOTTOM,
 									   1, height-1, width-1, height);
 
-	b->tl = make_invisible_window (gscreen, NE, 0, 0, 1, 1);
-	b->tr = make_invisible_window (gscreen, NW, width-1, 0, width, 1);
-	b->bl = make_invisible_window (gscreen, SE, 0, height-1, 1, height);
-	b->br = make_invisible_window (gscreen, SW,
+	b->tl = make_invisible_window (gscreen, NW, 0, 0, 1, 1);
+	b->tr = make_invisible_window (gscreen, NE, width-1, 0, width, 1);
+	b->bl = make_invisible_window (gscreen, SW, 0, height-1, 1, height);
+	b->br = make_invisible_window (gscreen, SE,
 								   width-1, height-1, width, height);
 
 	g_signal_connect (G_OBJECT(wscreen), "window-stacking-changed",
