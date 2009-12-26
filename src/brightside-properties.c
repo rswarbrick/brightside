@@ -118,12 +118,13 @@ create_dialog (void)
 	return dialog;
 }
 
-/***** Callbacks that respond to external stimuli and update the dialog *******/
-
+/**************** Notification functions called from gconf ********************/
 static void
-on_set_corner_enabled (const struct corner_desc* corner, gboolean enabled)
+corner_enabled_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					   const struct corner_desc* corner)
 {
 	GConfClient *client = gconf_client_get_default ();
+	gboolean enabled = gconf_value_get_bool (entry->value);
 
 	gtk_toggle_button_set_active (
 		GTK_TOGGLE_BUTTON (named_widget (corner->enabled_toggle_id)),
@@ -137,10 +138,12 @@ on_set_corner_enabled (const struct corner_desc* corner, gboolean enabled)
 }
 
 static void
-on_set_corner_action (const struct corner_desc* corner, const gchar* action)
+corner_action_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					  const struct corner_desc* corner)
 {
 	gint enum_val;
 	GConfClient *client = gconf_client_get_default ();
+	const gchar* action = gconf_value_get_string (entry->value);
 
 	if (!gconf_string_to_enum (actions_lookup_table, action, &enum_val)) {
 		g_warning ("Invalid corner action stored. Setting to mute.\n");
@@ -160,10 +163,12 @@ on_set_corner_action (const struct corner_desc* corner, const gchar* action)
 }
 
 static void
-on_set_corner_flip (gboolean enabled)
+corner_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					void* ignored)
 {
 	GConfClient *client = gconf_client_get_default ();
 	int i;
+	gboolean enabled = gconf_value_get_bool (entry->value);
 
 	gtk_toggle_button_set_active (
 		GTK_TOGGLE_BUTTON (named_widget (enabled ?
@@ -180,20 +185,23 @@ on_set_corner_flip (gboolean enabled)
 			named_widget (corners[i].enabled_toggle_id), !enabled);
 	}
 
-
 	g_object_unref (client);
 }
 
 static void
-on_set_corner_delay (gint delay)
+corner_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+					void* ignored)
 {
 	gtk_range_set_value (GTK_RANGE (named_widget ("corner_delay_scale")),
-						 delay);
+						 gconf_value_get_int (entry->value));
 }
 
 static void
-on_set_edge_flip (gboolean flip)
+edge_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
+				  void* ignored)
 {
+	gboolean flip = gconf_value_get_bool (entry->value);
+
 	gtk_toggle_button_set_active (
 		GTK_TOGGLE_BUTTON (named_widget ("edge_flip_enabled")),
 		flip);
@@ -201,68 +209,20 @@ on_set_edge_flip (gboolean flip)
 }
 
 static void
-on_set_edge_delay (gint delay)
-{
-	gtk_range_set_value (GTK_RANGE (named_widget ("edge_delay_scale")),
-						 delay);
-}
-
-static void
-on_set_edge_wrap (gboolean wrap)
-{
-	gtk_toggle_button_set_active (
-		GTK_TOGGLE_BUTTON (named_widget ("edge_wrap_enabled")),
-		wrap);
-}
-
-/**************** Notification functions called from gconf ********************/
-static void
-corner_enabled_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-					   const struct corner_desc* corner)
-{
-	on_set_corner_enabled (corner, gconf_value_get_bool (entry->value));
-}
-
-static void
-corner_action_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-					  const struct corner_desc* corner)
-{
-	on_set_corner_action (corner, gconf_value_get_string (entry->value));
-}
-
-static void
-corner_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-					void* ignored)
-{
-	on_set_corner_flip (gconf_value_get_bool (entry->value));
-}
-
-static void
-corner_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-					void* ignored)
-{
-	on_set_corner_delay (gconf_value_get_int (entry->value));
-}
-
-static void
-edge_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-				  void* ignored)
-{
-	on_set_edge_flip (gconf_value_get_bool (entry->value));
-}
-
-static void
 edge_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 				   void* ignored)
 {
-	on_set_edge_delay (gconf_value_get_int (entry->value));
+	gtk_range_set_value (GTK_RANGE (named_widget ("edge_delay_scale")),
+						 gconf_value_get_int (entry->value));
 }
 
 static void
 edge_wrap_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 				  void* ignored)
 {
-	on_set_edge_wrap (gconf_value_get_bool (entry->value));
+	gtk_toggle_button_set_active (
+		GTK_TOGGLE_BUTTON (named_widget ("edge_wrap_enabled")),
+		gconf_value_get_bool (entry->value));
 }
 
 /* Set up callbacks which update the dialog when gconf key values change. */
