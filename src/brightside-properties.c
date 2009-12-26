@@ -334,7 +334,7 @@ on_corner_action_changed (GtkOptionMenu *menu,
 		show_custom_action_dialog (
 			GTK_WINDOW (gtk_widget_get_ancestor (
 							GTK_WIDGET (menu), GTK_TYPE_DIALOG)),
-			GPOINTER_TO_INT (corner));
+			corner);
 	}
 
 	gconf_client_set_string (client, corner->action_key, action, NULL);

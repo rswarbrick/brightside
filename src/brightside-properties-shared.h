@@ -22,7 +22,10 @@
 #ifndef __BRIGHTSIDE_PROPERTIES_SHARED_H__
 #define __BRIGHTSIDE_PROPERTIES_SHARED_H__
 
-void show_custom_action_dialog (GtkWindow *parent, gint corner);
+#include "brightside.h"
+
+void show_custom_action_dialog (GtkWindow *parent,
+								const struct corner_desc *corner);
 
 #endif /* __BRIGHTSIDE_PROPERTIES_SHARED_H__ */
 
