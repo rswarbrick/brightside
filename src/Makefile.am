@@ -70,7 +70,7 @@ Datadir = $(datadir)/brightside/
 Data_DATA = 				\
 	brightside.glade			\
 	brightside-properties.glade		\
-	custom-action.glade			\
+	custom-action.ui			\
 	gnome-speakernotes.png gnome-speakernotes-muted.png	\
 	brightside-brightness.png xscreensaver.png dpms.png	\
 	gnome-lockscreen.png	\

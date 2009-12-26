@@ -23,7 +23,6 @@
 
 #include <sys/file.h>
 #include <gnome.h>
-#include <glade/glade.h>
 #include <gconf/gconf-client.h>
 #include <gdk/gdkx.h>
 
@@ -37,13 +36,13 @@
  * once, since it's modal, but we set the object to NULL when not in use and
  * check for this at the entry point.
  */
-static GladeXML *dialog = NULL;
+static GtkBuilder *dialog = NULL;
 
 static GtkWidget*
 named_widget (const gchar* name)
 {
 	g_assert (dialog);
-	GtkWidget* widget = glade_xml_get_widget (dialog, name);
+	GtkWidget* widget = GTK_WIDGET (gtk_builder_get_object (dialog, name));
 	g_assert (widget);
 	return widget;
 }
@@ -145,14 +144,19 @@ show_custom_action_dialog (GtkWindow *parent,
 {
 	GtkWidget *dialog_win;
 	GConfClient *client = gconf_client_get_default ();
+	GError* error = NULL;
 
 	if (dialog) {
 		g_warning ("Trying to run two custom dialogs at once.\n");
 		return;
 	}
 
-	dialog = glade_xml_new (BRIGHTSIDE_DATA "custom-action.glade", 
-							"action_widget", NULL);
+	dialog = gtk_builder_new ();
+	if (!gtk_builder_add_from_file (dialog,
+									BRIGHTSIDE_DATA "custom-action.ui",
+									&error)) {
+		g_error ("Couldn't load GtkBuilder file: %s", error->message);
+	}
 
 	init_gconf_callbacks (corner);
 
