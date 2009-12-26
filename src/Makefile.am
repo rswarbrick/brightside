@@ -44,8 +44,6 @@ brightside_LDFLAGS =						\
 
 brightside_properties_SOURCES =				\
 	brightside-properties.c brightside-properties.h	\
-	gconf-property-editor.c gconf-property-editor.h \
-	gconf-property-editor-marshal.c gconf-property-editor-marshal.h	\
 	preview-file-selection.c preview-file-selection.h	\
 	custom-action.c custom-action.h brightside-properties-shared.h \
 	capplet-util.h
