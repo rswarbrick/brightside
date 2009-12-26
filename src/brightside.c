@@ -124,11 +124,6 @@ enum {
 	ICON_CUSTOM,
 };
 
-enum {
-	ACTION_START,
-	ACTION_STOP,
-};
-
 typedef struct {
 	int rows;
 	int cols;
