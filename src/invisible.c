@@ -36,6 +36,17 @@ on_edge_enter (GtkWidget *widget, GdkEventCrossing *event,
 	return TRUE;
 }
 
+static gboolean
+on_corner_leave (GtkWidget *widget, GdkEventCrossing *event,
+				 BrightsideRegionType rt)
+{
+	/* Our entering the corner earlier might have started a timed action. Check
+	 * whether that is the case and, if so, cancel it.
+	 */
+	do_region_action (rt, ACTION_STOP);
+}
+
+
 #define MAYBE_RAISE_WINDOW(w) \
 	if(w) { gdk_window_raise(gtk_widget_get_window(w)); }
 
@@ -62,8 +73,14 @@ make_invisible_window(GdkScreen* screen, BrightsideRegionType rt,
 	gtk_widget_add_events (invis, GDK_ENTER_NOTIFY_MASK);
 
 	/* Slight hack, passing rt as a gpointer, but both are int's really! */
-	g_signal_connect (G_OBJECT(invis), "enter-notify-event", 
+	g_signal_connect (G_OBJECT(invis), "enter-notify-event",
 					  G_CALLBACK(on_edge_enter), (gpointer)rt);
+
+	if (REGION_IS_CORNER (rt)) {
+		gtk_widget_add_events (invis, GDK_LEAVE_NOTIFY_MASK);
+		g_signal_connect (G_OBJECT(invis), "leave-notify-event",
+						  G_CALLBACK(on_corner_leave), (gpointer)rt);
+	}
 
 	gdk_window_move_resize (gtk_widget_get_window(invis),
 							left, top, width, height);
