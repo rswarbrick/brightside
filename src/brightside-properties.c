@@ -186,6 +186,7 @@ corner_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 		gtk_widget_set_sensitive (
 			named_widget (corners[i].enabled_toggle_id), !enabled);
 	}
+	gtk_widget_set_sensitive (named_widget ("corner_delay_scale"), enabled);
 
 	g_object_unref (client);
 }
