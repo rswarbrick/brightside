@@ -263,19 +263,6 @@ init_gconf_callbacks ()
 }
 
 static void
-on_corner_enabled_toggle (GtkToggleButton *togglebutton,
-						  const struct corner_desc *corner)
-{
-	GConfClient *client = gconf_client_get_default ();
-
-	gconf_client_set_bool (client, corner->enabled_key,
-						   gtk_toggle_button_get_active (togglebutton),
-						   NULL);
-
-	g_object_unref (client);
-}
-
-static void
 on_corner_action_changed (GtkOptionMenu *menu,
 						  const struct corner_desc *corner)
 {
@@ -302,63 +289,30 @@ on_corner_action_changed (GtkOptionMenu *menu,
 	g_object_unref (client);
 }
 
-static void
-on_corners_configurable_toggle (GtkToggleButton *togglebutton,
-								gpointer *ignored)
+/*
+ * A callback that sets a boolean gconf setting by a GtkToggleButton.
+ */
+void
+on_toggle_with_key (GtkToggleButton *tb, const gchar* key)
 {
 	GConfClient *client = gconf_client_get_default ();
 
-	gconf_client_set_bool (client, "/apps/brightside/corner_flip",
-						   !gtk_toggle_button_get_active (togglebutton),
-						   NULL);
+	gconf_client_set_bool (client, key,
+						   gtk_toggle_button_get_active (tb), NULL);
 
 	g_object_unref (client);
 }
 
-static void
-on_corner_delay_changed (GtkRange *range, gpointer *ignored)
+/*
+ * A callback that sets an integer gconf setting by a GtkRange.
+ */
+void
+on_int_range_with_key (GtkRange *range, const gchar* key)
 {
 	GConfClient *client = gconf_client_get_default ();
 
-	gconf_client_set_int (client, "/apps/brightside/corner_delay",
-						  (gint)gtk_range_get_value (range),
-						  NULL);
-
-	g_object_unref (client);
-}
-
-static void
-on_edge_flip_toggle (GtkToggleButton *togglebutton, gpointer *ignored)
-{
-	GConfClient *client = gconf_client_get_default ();
-
-	gconf_client_set_bool (client, "/apps/brightside/enable_edge_flip",
-						  gtk_toggle_button_get_active (togglebutton),
-						  NULL);
-
-	g_object_unref (client);
-}
-
-static void
-on_edge_delay_changed (GtkRange *range, gpointer *ignored)
-{
-	GConfClient *client = gconf_client_get_default ();
-
-	gconf_client_set_int (client, "/apps/brightside/edge_delay",
-						  (gint)gtk_range_get_value (range),
-						  NULL);
-
-	g_object_unref (client);
-}
-
-static void
-on_edge_wrap_toggle (GtkToggleButton *togglebutton, gpointer *ignored)
-{
-	GConfClient *client = gconf_client_get_default ();
-
-	gconf_client_set_bool (client, "/apps/brightside/edge_wrap",
-						  gtk_toggle_button_get_active (togglebutton),
-						  NULL);
+	gconf_client_set_int (client, key,
+						  (gint)gtk_range_get_value (range), NULL);
 
 	g_object_unref (client);
 }
@@ -372,29 +326,35 @@ init_ui_callbacks ()
 	for (i = 0; i < 4; i++) {
 		g_signal_connect (
 			G_OBJECT (named_widget (corners[i].enabled_toggle_id)),
-			"toggled", (GCallback)on_corner_enabled_toggle,
-			(gpointer)&corners[i]);
+			"toggled",
+			(GCallback)on_toggle_with_key,
+			(gpointer)corners[i].enabled_key);
 		g_signal_connect (
 			G_OBJECT (named_widget (corners[i].action_menu_id)),
 			"changed", (GCallback)on_corner_action_changed,
 			(gpointer)&corners[i]);
 	}
 
-	g_signal_connect (G_OBJECT (named_widget ("corners_configurable")),
+	g_signal_connect (G_OBJECT (named_widget ("corners_flip")),
 					  "toggled",
-					  (GCallback)on_corners_configurable_toggle, NULL);
+					  (GCallback)on_toggle_with_key,
+					  "/apps/brightside/corner_flip");
 	g_signal_connect (G_OBJECT (named_widget ("corner_delay_scale")),
 					  "value-changed",
-					  (GCallback)on_corner_delay_changed, NULL);
+					  (GCallback)on_int_range_with_key,
+					  "/apps/brightside/corner_delay");
 	g_signal_connect (G_OBJECT (named_widget ("edge_flip_enabled")),
 					  "toggled",
-					  (GCallback)on_edge_flip_toggle, NULL);
+					  (GCallback)on_toggle_with_key,
+					  "/apps/brightside/enable_edge_flip");
 	g_signal_connect (G_OBJECT (named_widget ("edge_delay_scale")),
 					  "value-changed",
-					  (GCallback)on_edge_delay_changed, NULL);
+					  (GCallback)on_int_range_with_key,
+					  "/apps/brightside/edge_delay");
 	g_signal_connect (G_OBJECT (named_widget ("edge_wrap_enabled")),
 					  "toggled",
-					  (GCallback)on_edge_wrap_toggle, NULL);
+					  (GCallback)on_toggle_with_key,
+					  "/apps/brightside/edge_wrap");
 }
 
 void
