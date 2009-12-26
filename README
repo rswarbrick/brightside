@@ -127,7 +127,7 @@ Hacking
 -------
 
 0) Delete all but: AUTHORS ChangeLog configure.ac brightside.spec.in 
-      Makefile.am NEWS README src/*.{c,h,svg,png,glade,am} 
+      Makefile.am NEWS README src/*.{c,h,svg,png,ui,am}
       src/brightside.desktop.in src/brightside.schemas.in 
       po/*.po po/ChangeLog po/POTFILES.* ebuild/ doc/
 1) intltoolize --copy
@@ -141,7 +141,7 @@ Hacking
 9) See Installation
 
 You MUST delete po/brightside.pot and make update-po in po/ if you change any
-localisable strings (anything in the .glade files and brightside.schemas.in, 
+localisable strings (anything in the .ui files and brightside.schemas.in,
 the lines starting _ in brightside.desktop.in, and strings wrapped _(...) in 
 .c and .h files).
 

@@ -44,10 +44,6 @@
 #  define DEBUG_MSG(str, args...)
 #endif
 
-/* Retrieve a widget from the Glade object */
-
-#define WID(s) glade_xml_get_widget (dialog, s)
-
 /* Copy a setting from the legacy gnome-config settings to the ConfigDatabase */
 
 #define COPY_FROM_LEGACY(type, key, legacy_key)                                 \

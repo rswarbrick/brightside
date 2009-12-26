@@ -10,9 +10,7 @@ Source:         %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-root
 
 Requires:	libgnomeui >= 2.0.0
-Requires:	libglade2 >= 2.0.0
 BuildRequires:  libgnomeui-devel >= 2.0.0
-BuildRequires:  libglade2-devel >= 2.0.0
 BuildRequires:  libwnck-devel >= 2.1.5
 
 %description
