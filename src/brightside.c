@@ -37,7 +37,6 @@
 #include <gconf/gconf-client.h>
 #include <libwnck/libwnck.h>
 #include <libwnck/screen.h>
-#include <libgnomevfs/gnome-vfs-mime-handlers.h>
 
 #include "brightside.h"
 #include "invisible.h"
