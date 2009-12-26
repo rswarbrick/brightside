@@ -119,6 +119,18 @@ create_dialog (void)
 }
 
 /**************** Notification functions called from gconf ********************/
+
+/*
+ * Set the value of a named GtkRange when an integer gconf entry changes.
+ */
+void
+set_range_by_int (GConfClient *gconf, guint id, GConfEntry *entry,
+				  const gchar* range_name)
+{
+	gtk_range_set_value (GTK_RANGE (named_widget (range_name)),
+						 gconf_value_get_int (entry->value));
+}
+
 static void
 corner_enabled_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 					   const struct corner_desc* corner)
@@ -189,14 +201,6 @@ corner_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 }
 
 static void
-corner_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-					void* ignored)
-{
-	gtk_range_set_value (GTK_RANGE (named_widget ("corner_delay_scale")),
-						 gconf_value_get_int (entry->value));
-}
-
-static void
 edge_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 				  void* ignored)
 {
@@ -206,14 +210,6 @@ edge_flip_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 		GTK_TOGGLE_BUTTON (named_widget ("edge_flip_enabled")),
 		flip);
 	gtk_widget_set_sensitive (named_widget ("edge_delay_scale"), flip);
-}
-
-static void
-edge_delay_notify (GConfClient *gconf, guint id, GConfEntry *entry,
-				   void* ignored)
-{
-	gtk_range_set_value (GTK_RANGE (named_widget ("edge_delay_scale")),
-						 gconf_value_get_int (entry->value));
 }
 
 static void
@@ -247,14 +243,14 @@ init_gconf_callbacks ()
 							 (GConfClientNotifyFunc)corner_flip_notify,
 							 NULL, NULL, NULL);
 	gconf_client_notify_add (client, "/apps/brightside/corner_delay",
-							 (GConfClientNotifyFunc)corner_delay_notify,
-							 NULL, NULL, NULL);
+							 (GConfClientNotifyFunc)set_range_by_int,
+							 "corner_delay_scale", NULL, NULL);
 	gconf_client_notify_add (client, "/apps/brightside/enable_edge_flip",
 							 (GConfClientNotifyFunc)edge_flip_notify,
 							 NULL, NULL, NULL);
 	gconf_client_notify_add (client, "/apps/brightside/edge_delay",
-							 (GConfClientNotifyFunc)edge_delay_notify,
-							 NULL, NULL, NULL);
+							 (GConfClientNotifyFunc)set_range_by_int,
+							 "edge_delay_scale", NULL, NULL);
 	gconf_client_notify_add (client, "/apps/brightside/edge_wrap",
 							 (GConfClientNotifyFunc)edge_wrap_notify,
 							 NULL, NULL, NULL);
