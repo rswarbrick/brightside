@@ -48,20 +48,15 @@ named_widget (const gchar* name)
 	return widget;
 }
 
-static void
-custom_in_notify (GConfClient *gconf, guint id, GConfEntry *entry, gpointer *p)
+/*
+ * Set the value of a named GtkEntry when an string gconf entry changes.
+ */
+void
+set_entry_by_string (GConfClient *gconf, guint id, GConfEntry *entry,
+					 const gchar* entry_name)
 {
 	if (entry->value != NULL) {
-		gtk_entry_set_text (GTK_ENTRY (named_widget ("in_entry")),
-							gconf_value_get_string (entry->value));
-	}
-}
-
-static void
-custom_out_notify (GConfClient *gconf, guint id, GConfEntry *entry, gpointer *p)
-{
-	if (entry->value != NULL) {
-		gtk_entry_set_text (GTK_ENTRY (named_widget ("out_entry")),
+		gtk_entry_set_text (GTK_ENTRY (named_widget (entry_name)),
 							gconf_value_get_string (entry->value));
 	}
 }
@@ -85,11 +80,11 @@ init_gconf_callbacks (const struct corner_desc *corner)
 	GConfClient *client = gconf_client_get_default ();
 
 	gconf_client_notify_add (client, corner->custom_in_key,
-							 (GConfClientNotifyFunc)custom_in_notify,
-							 NULL, NULL, NULL);
+							 (GConfClientNotifyFunc)set_entry_by_string,
+							 "in_entry", NULL, NULL);
 	gconf_client_notify_add (client, corner->custom_out_key,
-							 (GConfClientNotifyFunc)custom_out_notify,
-							 NULL, NULL, NULL);
+							 (GConfClientNotifyFunc)set_entry_by_string,
+							 "out_entry", NULL, NULL);
 	gconf_client_notify_add (client, corner->custom_kill_key,
 							 (GConfClientNotifyFunc)custom_kill_notify,
 							 NULL, NULL, NULL);
@@ -97,24 +92,13 @@ init_gconf_callbacks (const struct corner_desc *corner)
 	g_object_unref (client);
 }
 
-static void
-on_in_changed (GtkEditable *editable, const struct corner_desc *corner)
+void
+on_editable_with_key (GtkEditable *editable, const gchar *key)
 {
 	GConfClient *client = gconf_client_get_default ();
-	const gchar *cmd = gtk_entry_get_text (GTK_ENTRY (editable));
+	const gchar *txt = gtk_entry_get_text (GTK_ENTRY (editable));
 
-	gconf_client_set_string (client, corner->custom_in_key, cmd, NULL);
-
-	g_object_unref (client);
-}
-
-static void
-on_out_changed (GtkEditable *editable, const struct corner_desc *corner)
-{
-	GConfClient *client = gconf_client_get_default ();
-	const gchar *cmd = gtk_entry_get_text (GTK_ENTRY (editable));
-
-	gconf_client_set_string (client, corner->custom_out_key, cmd, NULL);
+	gconf_client_set_string (client, key, txt, NULL);
 
 	g_object_unref (client);
 }
@@ -135,11 +119,13 @@ static void
 init_ui_callbacks (const struct corner_desc *corner)
 {
 	g_signal_connect (G_OBJECT (named_widget ("in_entry")),
-					  "changed", (GCallback)on_in_changed, (gpointer)corner);
+					  "changed", (GCallback)on_editable_with_key,
+					  (gpointer)corner->custom_in_key);
 	g_signal_connect (G_OBJECT (named_widget ("terminate_radio")),
 					  "toggled", (GCallback)on_kill_toggle, (gpointer)corner);
 	g_signal_connect (G_OBJECT (named_widget ("out_entry")),
-					  "changed", (GCallback)on_out_changed, (gpointer)corner);
+					  "changed", (GCallback)on_editable_with_key,
+					  (gpointer)corner->custom_out_key);
 }
 
 static void
