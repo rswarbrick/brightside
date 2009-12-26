@@ -69,7 +69,7 @@ EXTRA_DIST =			\
 Datadir = $(datadir)/brightside/
 Data_DATA = 				\
 	brightside.glade			\
-	brightside-properties.glade		\
+	brightside-properties.ui		\
 	custom-action.ui			\
 	gnome-speakernotes.png gnome-speakernotes-muted.png	\
 	brightside-brightness.png xscreensaver.png dpms.png	\

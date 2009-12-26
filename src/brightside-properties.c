@@ -23,7 +23,6 @@
 
 #include <sys/file.h>
 #include <gnome.h>
-#include <glade/glade.h>
 #include <gconf/gconf-client.h>
 #include <gdk/gdkx.h>
 
@@ -33,13 +32,13 @@
 #include "brightside-properties.h"
 #include "brightside.h"
 
-GladeXML *dialog = NULL;
+GtkBuilder *dialog = NULL;
 
 static GtkWidget*
 named_widget (const gchar* name)
 {
 	g_assert (dialog);
-	GtkWidget* widget = glade_xml_get_widget (dialog, name);
+	GtkWidget* widget = GTK_WIDGET (gtk_builder_get_object (dialog, name));
 	g_assert (widget);
 	return widget;
 }
@@ -82,40 +81,31 @@ dialog_button_clicked_cb (GtkDialog *dialog, gint response_id,
 }
 
 static void
-populate_menus (GladeXML *dialog)
+fill_action_combos ()
 {
-	gint corner, action;
-	GtkWidget *menu;
-	GtkWidget *menuitem;
+	gint i, j;
+	GtkListStore *store;
+	GtkTreeIter iter;
+	GtkCellRenderer *cell;
+	GtkComboBox *combo;
 
-	for (corner = REGION_FIRST_CORNER; REGION_IS_CORNER (corner); 
-			++corner) {
-		menu = gtk_menu_new();
-		for (action = 0; action < HANDLED_ACTIONS; ++action) {
-			menuitem = gtk_menu_item_new_with_label (
-				action_descriptions[action]);
-			gtk_menu_shell_append (GTK_MENU_SHELL (menu), menuitem);
-		}
-		gtk_option_menu_set_menu (GTK_OPTION_MENU (
-					WID (corners[corner].action_menu_id)),
-				menu);
+	store = gtk_list_store_new (1, G_TYPE_STRING);
+	for (j = 0; j < HANDLED_ACTIONS; j++) {
+		gtk_list_store_append (store, &iter);
+		gtk_list_store_set (store, &iter, 0, _(action_descriptions[j]), -1);
 	}
-}
 
-/* CargoCult gnome-control-center/.../sound-properties-capplet.c */
-static GladeXML *
-create_dialog (void)
-{
-	GladeXML *dialog;
+	for (i = 0; i < 4; i++) {
+		combo = GTK_COMBO_BOX (named_widget (corners[i].action_menu_id));
 
-	dialog = glade_xml_new (BRIGHTSIDE_DATA "brightside-properties.glade", 
-			"prefs_widget", NULL);
-	g_object_set_data (G_OBJECT (WID ("prefs_widget")), 
-			"glade-data", dialog);
+		gtk_combo_box_set_model (combo, GTK_TREE_MODEL (store));
 
-	populate_menus (dialog);
-
-	return dialog;
+		gtk_cell_layout_clear (GTK_CELL_LAYOUT (combo));
+        cell = GTK_CELL_RENDERER (gtk_cell_renderer_text_new ());
+        gtk_cell_layout_pack_start (GTK_CELL_LAYOUT (combo), cell, TRUE);
+        gtk_cell_layout_set_attributes (GTK_CELL_LAYOUT (combo), cell,
+										"text", 0, NULL);
+	}
 }
 
 /**************** Notification functions called from gconf ********************/
@@ -167,8 +157,8 @@ corner_action_notify (GConfClient *gconf, guint id, GConfEntry *entry,
 		enum_val = MUTE_VOLUME_ACTION;
 	}
 
-	gtk_option_menu_set_history (
-		GTK_OPTION_MENU (named_widget (corner->action_menu_id)),
+	gtk_combo_box_set_active (
+		GTK_COMBO_BOX (named_widget (corner->action_menu_id)),
 		enum_val);
 
 	g_object_unref (client);
@@ -259,11 +249,11 @@ init_gconf_callbacks ()
 }
 
 static void
-on_corner_action_changed (GtkOptionMenu *menu,
+on_corner_action_changed (GtkComboBox *combo,
 						  const struct corner_desc *corner)
 {
 	GConfClient *client = gconf_client_get_default ();
-	gint menu_index = gtk_option_menu_get_history (menu);
+	gint menu_index = gtk_combo_box_get_active (combo);
 	const gchar* action = gconf_enum_to_string (actions_lookup_table,
 												menu_index);
 
@@ -276,7 +266,7 @@ on_corner_action_changed (GtkOptionMenu *menu,
 	else if (menu_index == CUSTOM_ACTION) {
 		show_custom_action_dialog (
 			GTK_WINDOW (gtk_widget_get_ancestor (
-							GTK_WIDGET (menu), GTK_TYPE_DIALOG)),
+							GTK_WIDGET (combo), GTK_TYPE_DIALOG)),
 			corner);
 	}
 
@@ -373,6 +363,7 @@ main (int argc, char *argv[])
 {
 	GtkWidget	*dialog_win;
 	GConfClient *client;
+	GError* error = NULL;
 	
 	bindtextdomain (GETTEXT_PACKAGE, GNOMELOCALEDIR);
 	bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
@@ -382,7 +373,14 @@ main (int argc, char *argv[])
 			LIBGNOMEUI_MODULE, argc, argv,
 			NULL);
 
-	dialog = create_dialog ();
+	dialog = gtk_builder_new ();
+	if (!gtk_builder_add_from_file (dialog,
+									BRIGHTSIDE_DATA "brightside-properties.ui",
+									&error)) {
+		g_error ("Couldn't load GtkBuilder file: %s", error->message);
+	}
+
+	fill_action_combos ();
 
 	dialog_win = gtk_dialog_new_with_buttons(
 			_("Screen Actions"), NULL, 
@@ -399,7 +397,7 @@ main (int argc, char *argv[])
 					  (GCallback) dialog_button_clicked_cb, NULL);
 
 	gtk_box_pack_start (GTK_BOX (GTK_DIALOG (dialog_win)->vbox), 
-			WID ("prefs_widget"), TRUE, TRUE, 0);
+						named_widget ("prefs_widget"), TRUE, TRUE, 0);
 	gtk_window_set_resizable (GTK_WINDOW (dialog_win), FALSE);
 	gtk_window_set_icon_from_file (GTK_WINDOW (dialog_win), 
 			BRIGHTSIDE_DATA "brightside.svg", NULL);
