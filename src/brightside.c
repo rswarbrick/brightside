@@ -34,7 +34,6 @@
 #include <gtk/gtk.h>
 #include <glib-object.h>
 #include <gnome.h>
-#include <glade/glade.h>
 #include <gconf/gconf-client.h>
 #include <libwnck/libwnck.h>
 #include <libwnck/screen.h>
@@ -73,7 +72,7 @@ struct brightside_t {
 		gboolean orientable_workspaces;
 	} settings;
 	
-	GladeXML *xml;
+	GtkBuilder *xml;
 	GtkWidget *dialog;
 	GtkWidget *dialog_image;
 	GConfClient *conf_client;
@@ -148,6 +147,16 @@ gboolean pager_enter_leave (GtkWidget *widget, GdkEventCrossing *event,
 		gpointer data);
 
 /* main code */
+
+static GtkWidget*
+named_widget (const gchar* name)
+{
+	g_assert (brightside->xml);
+	GtkWidget* widget =
+		GTK_WIDGET (gtk_builder_get_object (brightside->xml, name));
+	g_assert (widget);
+	return widget;
+}
 
 static Window
 my_wnck_screen_get_root (WnckScreen *screen, Display *display)
@@ -430,8 +439,7 @@ brightside_image_set_custom (Brightside *brightside, const gchar *cmd,
 	GtkWidget *image = NULL;
 	GtkWidget *vbox;
 
-	vbox = glade_xml_get_widget (brightside->xml, "vbox2");
-	g_return_if_fail (vbox != NULL);
+	vbox = named_widget ("vbox2");
 
 	if (cmd && strlen(cmd) != 0) {
 		gchar **argv;
@@ -468,8 +476,7 @@ brightside_image_set (Brightside *brightside, int icon, gboolean sensitive)
 	GtkWidget *image = NULL;
 	GtkWidget *vbox;
 
-	vbox = glade_xml_get_widget (brightside->xml, "vbox2");
-	g_return_if_fail (vbox != NULL);
+	vbox = named_widget ("vbox2");
 
 	switch (icon) {
 	case ICON_LOUD:
@@ -763,7 +770,7 @@ update_bar_volume_cb (Brightside *brightside)
 	if (brightside->dialog_timeout == 0)
 		return FALSE;
 	vol = brightside_volume_get_volume (brightside->volobj);
-	progress = glade_xml_get_widget (brightside->xml, "progressbar");
+	progress = named_widget ("progressbar");
 	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progress),
 			(double) vol / 100);
 	return TRUE;
@@ -790,7 +797,7 @@ update_bar_timed_cb (Brightside *brightside)
 				brightside->time_progress_bar));
 	if (elapsed_msec > DIALOG_TIMEOUT)
 		return FALSE;
-	progress = glade_xml_get_widget (brightside->xml, "progressbar");
+	progress = named_widget ("progressbar");
 	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progress),
 			(double) elapsed_msec / DIALOG_TIMEOUT);
 	return TRUE;
@@ -801,7 +808,7 @@ show_dialog_timed_bar (Brightside *brightside, gint icon, gboolean is_enabled)
 {
 	GtkWidget *progress;
 	glong timeout_msec = DIALOG_TIMEOUT; 
-	progress = glade_xml_get_widget (brightside->xml, "progressbar");
+	progress = named_widget ("progressbar");
 	gtk_widget_set_sensitive (progress, is_enabled);
 	if (icon != ICON_CUSTOM)
 		brightside_image_set (brightside, icon, is_enabled);
@@ -874,7 +881,7 @@ do_mute_action (Brightside *brightside, gint action)
 			muted ? ICON_MUTED : ICON_LOUD, !muted);
 
 	vol = brightside_volume_get_volume (brightside->volobj);
-	progress = glade_xml_get_widget (brightside->xml, "progressbar");
+	progress = named_widget ("progressbar");
 	gtk_widget_set_sensitive (progress, !muted);
 	gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (progress),
 			(double) vol / 100);
@@ -1006,7 +1013,7 @@ do_dimbacklight_action (Brightside *brightside, gint action)
 
 	brightside_image_set (brightside, ICON_BRIGHT, !is_dim);
 
-	progress = glade_xml_get_widget (brightside->xml, "progressbar");
+	progress = named_widget ("progressbar");
 	gtk_widget_set_sensitive (progress, !is_dim);
 	if (is_dim)
 		level = 0;
@@ -1282,8 +1289,7 @@ pager_setup (Brightside *brightside)
 	/* From test-pager.c */
 	GtkWidget *pager;
 	GtkWidget *vbox;
-	vbox = glade_xml_get_widget (brightside->xml, "vbox3");
-	g_return_if_fail (vbox != NULL);
+	vbox = named_widget ("vbox3");
 
 	pager = wnck_pager_new (brightside->screen);
 	wnck_pager_set_orientation (WNCK_PAGER (pager), 
@@ -1312,8 +1318,7 @@ pager_show (Brightside *brightside, WnckWorkspace *workspace,
 #ifdef DEBUG
 	g_print("pager_show %d %d\n", n_rows, from_scroll);
 #endif
-	label = glade_xml_get_widget (brightside->xml, 
-			"workspace_label");
+	label = named_widget ("workspace_label");
 	gtk_label_set_text (GTK_LABEL (label), 
 			wnck_workspace_get_name (workspace));
 
@@ -1839,6 +1844,7 @@ int
 main (int argc, char *argv[])
 {
 	GnomeProgram *brightside_program = NULL;
+	GError *error = NULL;
 	gboolean show_pager = FALSE, show_version = FALSE;
 	struct poptOption cmd_options_table[] = {
 		{"pager", 'p', POPT_ARG_NONE, &show_pager, 0, 
@@ -1873,20 +1879,18 @@ main (int argc, char *argv[])
 		brightside_exit (brightside);
 	}
 
-	glade_gnome_init ();
-	brightside->xml = glade_xml_new (BRIGHTSIDE_DATA "brightside.glade", 
-			NULL, NULL);
-
-	if (brightside->xml == NULL) {
-		brightside_error (_("Couldn't load the Glade file.\n"
-				"Make sure that this daemon is properly"
-				" installed."));
-		exit (1);
+	brightside->xml = gtk_builder_new ();
+	if (!gtk_builder_add_from_file (brightside->xml,
+									BRIGHTSIDE_DATA "brightside.ui",
+									&error)) {
+		g_error (_("Couldn't load GtkBuilder file: %s\n"
+				   "Make sure that this daemon is properly installed.\n"),
+				 error->message);
 	}
 
-	brightside->dialog = glade_xml_get_widget (brightside->xml, "dialog");
+	brightside->dialog = named_widget ("dialog");
 	brightside_image_set (brightside, ICON_LOUD, TRUE);
-	brightside->pager = glade_xml_get_widget (brightside->xml, "pager");
+	brightside->pager = named_widget ("pager");
 	g_signal_connect (G_OBJECT (brightside->pager), "enter-notify-event",
 			G_CALLBACK (pager_enter_leave), (gpointer) brightside);
 	g_signal_connect (G_OBJECT (brightside->pager), "leave-notify-event",

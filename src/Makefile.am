@@ -48,7 +48,7 @@ brightside_properties_SOURCES =				\
 	custom-action.c custom-action.h brightside-properties-shared.h \
 	capplet-util.h
 
-CLEANFILES = *.bak *.gladep $(desktop_DATA) $(schema_DATA)
+CLEANFILES = *.bak $(desktop_DATA) $(schema_DATA)
 
 EGGFILES2 = eggtrayicon.h eggtrayicon.c
 
@@ -68,7 +68,7 @@ EXTRA_DIST =			\
 
 Datadir = $(datadir)/brightside/
 Data_DATA = 				\
-	brightside.glade			\
+	brightside.ui			\
 	brightside-properties.ui		\
 	custom-action.ui			\
 	gnome-speakernotes.png gnome-speakernotes-muted.png	\
