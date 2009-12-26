@@ -274,6 +274,7 @@
                       <object class="GtkHScale" id="corner_delay_scale">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="adjustment">corner_delay_adjustment</property>
                         <property name="digits">0</property>
                         <property name="draw_value">False</property>
                       </object>
@@ -399,6 +400,7 @@
                       <object class="GtkHScale" id="edge_delay_scale">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="adjustment">edge_delay_adjustment</property>
                         <property name="digits">0</property>
                         <property name="draw_value">False</property>
                       </object>
@@ -459,5 +461,21 @@
         <property name="position">2</property>
       </packing>
     </child>
+  </object>
+  <object class="GtkAdjustment" id="edge_delay_adjustment">
+    <property name="value">500</property>
+    <property name="lower">100</property>
+    <property name="upper">1500</property>
+    <property name="step_increment">10</property>
+    <property name="page_increment">10</property>
+    <property name="page_size">10</property>
+  </object>
+  <object class="GtkAdjustment" id="corner_delay_adjustment">
+    <property name="value">500</property>
+    <property name="lower">100</property>
+    <property name="upper">1500</property>
+    <property name="step_increment">10</property>
+    <property name="page_increment">10</property>
+    <property name="page_size">10</property>
   </object>
 </interface>
