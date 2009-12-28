@@ -43,7 +43,7 @@
             <property name="orientation">vertical</property>
             <child>
               <object class="GtkRadioButton" id="corners_configurable">
-                <property name="label" translatable="yes">_Configurable actions</property>
+                <property name="label" translatable="yes">C_onfigurable actions</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -217,6 +217,7 @@
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">_Delay:</property>
                         <property name="use_underline">True</property>
+                        <property name="mnemonic_widget">corner_delay_scale</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -330,6 +331,7 @@
                         <property name="visible">True</property>
                         <property name="label" translatable="yes">D_elay:</property>
                         <property name="use_underline">True</property>
+                        <property name="mnemonic_widget">edge_delay_scale</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
