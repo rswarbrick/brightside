@@ -175,16 +175,23 @@ BrightsideVolume *brightside_volume_new (void)
 {
 	BrightsideVolume *vol;
 
-#ifdef HAVE_OSS
-	vol = BRIGHTSIDE_VOLUME  (g_object_new (brightside_volume_oss_get_type (), NULL));
-	return vol;
-#endif
-#ifdef HAVE_ALSA
-	vol = BRIGHTSIDE_VOLUME  (g_object_new (brightside_volume_alsa_get_type (), NULL));
+#if defined HAVE_ALSA
+	vol = BRIGHTSIDE_VOLUME (
+		g_object_new (brightside_volume_alsa_get_type (), NULL));
+
 	if (vol != NULL && BRIGHTSIDE_VOLUME_ALSA (vol)->_priv != NULL)
 		return vol;
 	if (BRIGHTSIDE_VOLUME_ALSA (vol)->_priv == NULL)
 		g_object_unref (vol);
+
+#elif defined HAVE_OSS
+	vol = BRIGHTSIDE_VOLUME (
+		g_object_new (brightside_volume_oss_get_type (), NULL));
+	return vol;
+
+#else
+	return BRIGHTSIDE_VOLUME (
+		g_object_new (brightside_volume_get_type (), NULL));
+
 #endif
-	return BRIGHTSIDE_VOLUME  (g_object_new (brightside_volume_get_type (), NULL));
 }
