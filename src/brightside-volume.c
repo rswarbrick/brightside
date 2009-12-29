@@ -28,7 +28,6 @@
 #ifdef HAVE_ALSA
 #include "brightside-volume-alsa.h"
 #endif
-#include "brightside-volume-dummy.h"
 
 static GObjectClass *parent_class = NULL;
 
@@ -67,79 +66,109 @@ GType brightside_volume_get_type (void)
 	return type;
 }
 
+/* On success, set class to be a pointer to the right BrightsideVolumeClass for
+ * self. On failure, return zero.
+ */
+#define MAYBE_SETUP_CLASS_RET(self) \
+	BrightsideVolumeClass* class = NULL; \
+	g_return_val_if_fail (self != NULL, 0); \
+	g_return_val_if_fail (BRIGHTSIDE_IS_VOLUME (self), 0); \
+	class = BRIGHTSIDE_VOLUME_GET_CLASS (self);
+
+/* On success, set class to be a pointer to the right BrightsideVolumeClass for
+ * self. On failure, return (no value!).
+ */
+#define MAYBE_SETUP_CLASS(self) \
+	BrightsideVolumeClass* class = NULL; \
+	g_return_if_fail (self != NULL); \
+	g_return_if_fail (BRIGHTSIDE_IS_VOLUME (self)); \
+	class = BRIGHTSIDE_VOLUME_GET_CLASS (self);
+
+/* A class that doesn't implement a function sets it to NULL. Return 0 if the
+ * function wasn't implemented, outputting a warning message too.
+ */
+#define CHECK_CLASS_FUNC_RET(func_name) \
+	if (!class->func_name) { \
+	g_warning( #func_name " not implemented by this audio class.\n" ); \
+	return 0; \
+	}
+
+/* A class that doesn't implement a function sets it to NULL. Return (no value)
+ * if the function wasn't implemented, outputting a warning message too.
+ */
+#define CHECK_CLASS_FUNC(func_name) \
+	if (!class->func_name) { \
+	g_warning( #func_name " not implemented by this audio class.\n" ); \
+	return; }
+
+/* Combine the previous two operations */
+#define MAYBE_SETUP_CLASS_FUNC_RET(self, func_name) \
+	MAYBE_SETUP_CLASS_RET (self) CHECK_CLASS_FUNC_RET (func_name)
+#define MAYBE_SETUP_CLASS_FUNC(self, func_name) \
+	MAYBE_SETUP_CLASS (self) CHECK_CLASS_FUNC (func_name)
+
 int
 brightside_volume_get_volume (BrightsideVolume *self)
 {
-	g_return_val_if_fail (self != NULL, 0);
-	g_return_val_if_fail (BRIGHTSIDE_IS_VOLUME (self), 0);
-
-	return BRIGHTSIDE_VOLUME_GET_CLASS (self)->get_volume (self);
+	MAYBE_SETUP_CLASS_FUNC_RET (self, get_volume);
+	return class->get_volume (self);
 }
 
 void
 brightside_volume_set_volume (BrightsideVolume *self, int val)
 {
-	g_return_if_fail (self != NULL);
-	g_return_if_fail (BRIGHTSIDE_IS_VOLUME (self));
-
-	BRIGHTSIDE_VOLUME_GET_CLASS (self)->set_volume (self, val);
+	MAYBE_SETUP_CLASS_FUNC (self, set_volume);
+	class->set_volume (self, val);
 }
 
 gboolean
 brightside_volume_get_mute (BrightsideVolume *self)
 {
-	g_return_val_if_fail (self != NULL, FALSE);
-	g_return_val_if_fail (BRIGHTSIDE_IS_VOLUME (self), FALSE);
-
-	return BRIGHTSIDE_VOLUME_GET_CLASS (self)->get_mute (self);
+	MAYBE_SETUP_CLASS_FUNC_RET (self, get_mute);
+	return class->get_mute (self);
 }
 
 void
 brightside_volume_set_mute (BrightsideVolume *self, gboolean val)
 {
-	g_return_if_fail (self != NULL);
-	g_return_if_fail (BRIGHTSIDE_IS_VOLUME (self));
-
-	BRIGHTSIDE_VOLUME_GET_CLASS (self)->set_mute (self, val);
+	MAYBE_SETUP_CLASS_FUNC (self, set_mute);
+	class->set_mute (self, val);
 }
 
 gboolean
 brightside_volume_get_use_pcm (BrightsideVolume *self)
 {
-	g_return_val_if_fail (self != NULL, FALSE);
-	g_return_val_if_fail (BRIGHTSIDE_IS_VOLUME (self), FALSE);
-
-	return BRIGHTSIDE_VOLUME_GET_CLASS (self)->get_use_pcm (self);
+	MAYBE_SETUP_CLASS_FUNC_RET (self, get_use_pcm);
+	return class->get_use_pcm (self);
 }
 
 void
 brightside_volume_set_use_pcm (BrightsideVolume *self, gboolean val)
 {
-	BRIGHTSIDE_VOLUME_GET_CLASS (self)->set_use_pcm (self, val);
+	MAYBE_SETUP_CLASS_FUNC (self, set_use_pcm);
+	class->set_use_pcm (self, val);
 }
 
 void
 brightside_volume_mute_toggle (BrightsideVolume * self)
 {
 	gboolean muted;
+	MAYBE_SETUP_CLASS_FUNC (self, get_mute);
+	CHECK_CLASS_FUNC (set_mute);
 
-	g_return_if_fail (self != NULL);
-	g_return_if_fail (BRIGHTSIDE_IS_VOLUME (self));
-	
-	muted = BRIGHTSIDE_VOLUME_GET_CLASS (self)->get_mute (self);
-	BRIGHTSIDE_VOLUME_GET_CLASS (self)->set_mute (self, !muted);
+	muted = class->get_mute (self);
+	class->set_mute (self, !muted);
 }
 
 void
 brightside_volume_mute_toggle_fade (BrightsideVolume *self, guint duration)
 {
 	gboolean muted;
+	MAYBE_SETUP_CLASS_FUNC (self, get_mute);
+	CHECK_CLASS_FUNC (set_mute_fade);
 
-	g_return_if_fail (self != NULL);
-	g_return_if_fail (BRIGHTSIDE_IS_VOLUME (self));
-	
-	muted = BRIGHTSIDE_VOLUME_GET_CLASS (self)->get_mute (self);
-	BRIGHTSIDE_VOLUME_GET_CLASS (self)->set_mute_fade (self, !muted, duration);
+	muted = class->get_mute (self);
+	class->set_mute_fade (self, !muted, duration);
 }
 
 BrightsideVolume *brightside_volume_new (void)
@@ -157,6 +186,5 @@ BrightsideVolume *brightside_volume_new (void)
 	if (BRIGHTSIDE_VOLUME_ALSA (vol)->_priv == NULL)
 		g_object_unref (vol);
 #endif
-	return BRIGHTSIDE_VOLUME  (g_object_new (brightside_volume_dummy_get_type (), NULL));
+	return BRIGHTSIDE_VOLUME  (g_object_new (brightside_volume_get_type (), NULL));
 }
-
