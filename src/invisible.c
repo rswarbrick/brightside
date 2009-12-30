@@ -50,8 +50,8 @@ on_corner_leave (GtkWidget *widget, GdkEventCrossing *event,
 #define MAYBE_RAISE_WINDOW(w) \
 	if(w) { gdk_window_raise(gtk_widget_get_window(w)); }
 
-static void
-raise_windows(WnckScreen *screen, InvisibleBorders *b)
+static gboolean
+raise_windows (InvisibleBorders *b)
 {
 	MAYBE_RAISE_WINDOW (b->left);
 	MAYBE_RAISE_WINDOW (b->right);
@@ -61,6 +61,15 @@ raise_windows(WnckScreen *screen, InvisibleBorders *b)
 	MAYBE_RAISE_WINDOW (b->tr);
 	MAYBE_RAISE_WINDOW (b->bl);
 	MAYBE_RAISE_WINDOW (b->br);
+
+	/* This is called by g_timeout_add_seconds, so keep doing it! */
+	return TRUE;
+}
+
+static void
+raise_windows_cb (WnckScreen *screen, InvisibleBorders *b)
+{
+	raise_windows (b);
 }
 
 static GtkWidget*
@@ -121,8 +130,11 @@ screen_add_invisible_borders (WnckScreen* wscreen, GdkScreen* gscreen,
 	b->br = make_invisible_window (gscreen, SE,
 								   width-1, height-1, width, height);
 
-	g_signal_connect (G_OBJECT(wscreen), "window-stacking-changed",
-					  G_CALLBACK(raise_windows), b);
+	g_signal_connect (G_OBJECT (wscreen), "window-stacking-changed",
+					  G_CALLBACK (raise_windows_cb), b);
+
+	/* Raise all windows every so often (~1 sec) */
+	g_timeout_add_seconds (1, (GSourceFunc)raise_windows, b);
 }
 
 #define MAYBE_DESTROY_WIDGET(a) if(a) { gtk_widget_destroy(a); a = NULL; }
